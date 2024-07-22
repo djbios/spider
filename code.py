@@ -3,7 +3,7 @@ import board
 import neopixel
 import time
 import board
-from utils import pwm_fade_in_out
+from utils import pwm_fade_in_out, Joint
 import pwmio
 from adafruit_motor import servo
 
@@ -37,24 +37,17 @@ led_strip_pin = pwmio.PWMOut(board.GP8, frequency=100)
 
 #Perform 3 fade in and fade out cycles
 for _ in range(3):
-    pwm_fade_in_out(led_strip_pin, fade_time=0.1)
+    pwm_fade_in_out(led_strip_pin, fade_time=0.2)
 led_strip_pin.duty_cycle = 0
 
-# Legs
+# Legs test
+leg1_joint1 = Joint(board.GP15)
 
-# create a PWMOut object on Pin A2.
-pwm = pwmio.PWMOut(board.GP15, duty_cycle=2 ** 15, frequency=50)
-
-# Create a servo object, my_servo.
-my_servo = servo.Servo(pwm)
-
-
-for angle in range(30, 180, 5):  # 0 - 180 degrees, 5 degrees at a time.
-    my_servo.angle = angle
-    time.sleep(0.05)
-for angle in range(180, 30, -5): # 180 - 0 degrees, 5 degrees at a time.
-    my_servo.angle = angle
-    time.sleep(0.05)
+leg1_joint1.move(30)
+time.sleep(0.5)
+leg1_joint1.move(180)
+time.sleep(0.5)
+leg1_joint1.move(90)
 
 # Cycle
 while True:
@@ -66,4 +59,4 @@ while True:
             factor = j / 100.0
             color = interpolate_color(start_color, end_color, factor)
             pixel.fill(color)
-            time.sleep(0.05)  # Adjust speed of the gradient
+            time.sleep(0.01)  # Adjust speed of the gradient

@@ -42,7 +42,7 @@ def light_test():
     print("Light test")
 
     for _ in range(3):
-        pwm_fade_in_out(led_strip_pwm, fade_time=0.5)
+        pwm_fade_in_out(led_strip_pwm, fade_time=0.2)
     led_strip_pwm.duty_cycle = 0
     print("Light test done")
 
@@ -52,8 +52,8 @@ def leg_test():
     for leg in [leg1, leg2, leg3, leg4]:
         for joint in [leg.hip, leg.knee, leg.ankle]:
             for angle in [80, 100, 90]:
-                joint.move(angle, speed=0.8)
-                time.sleep(0.5)
+                joint.move(angle, speed=1)
+                time.sleep(0.2)
 
     print("Leg test done")
 

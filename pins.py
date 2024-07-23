@@ -17,11 +17,11 @@ LEG3_ANKLE = board.GP12
 
 LEG4_HIP = board.GP11
 LEG4_KNEE = board.GP10
-LEG4_ANKLE = board.GP9
+LEG4_ANKLE = board.GP15  # Just to set free RX1
 
 LED_STRIP = board.GP7
 
 BATTERY_ADC = board.A0
 
-# TODO UART_TX = board.TX
-# TODO UART_RX = board.RX
+UART_TX = board.GP8
+UART_RX = board.GP9

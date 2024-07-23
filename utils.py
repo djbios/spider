@@ -1,7 +1,6 @@
 import time
 from pwmio import PWMOut
 from adafruit_motor import servo
-import sys
 import analogio
 
 
@@ -80,6 +79,10 @@ class Joint:
 
     def move(self, angle: float, speed: float = 1.0):
         if self.servo.angle is None:
+            self.servo.angle = angle
+            return
+
+        if speed == 1:
             self.servo.angle = angle
             return
 

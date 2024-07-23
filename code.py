@@ -1,5 +1,4 @@
 import time
-import board
 import neopixel
 import time
 import board
@@ -9,6 +8,9 @@ from adafruit_motor import servo
 import asyncio
 import analogio
 import pins
+import circuitpython_schedule as schedule
+import sys
+
 
 VOLTAGE_MULTIPLIER = 0.0002985503
 BATTERY_MAX_VOLTAGE = 12.6
@@ -21,7 +23,6 @@ pixel = neopixel.NeoPixel(pins.NEOPIXEL, 1)
 # Set the brightness
 pixel.brightness = 0.3
 
-# Pins config
 leg1 = Leg(
     hip=Joint(pins.LEG1_HIP), 
     knee=Joint(pins.LEG1_KNEE), 
@@ -77,11 +78,30 @@ def leg_test():
             time.sleep(0.2)
     print("Leg test done")
 
-def rainbow():
-    print("Rainbow")
-    while True:
+def print_battery():
+    voltage = get_battery_voltage()
+    percentage = get_battery_percentage()
 
-        # Main loop to cycle through the rainbow colors with smooth transitions
+    bar_length = 50  # Length of the progress bar
+    filled_length = int(bar_length * percentage // 100)
+    bar = '█' * filled_length + '-' * (bar_length - filled_length)
+
+    sys.stdout.write(f"\rBattery voltage: {voltage:.2f}V |{bar}| {percentage}%")
+
+# Scheduled tasks
+schedule.every(30).seconds.do(print_battery)
+
+async def main():
+    print("Starting tests")
+    print_battery()
+    light_test()
+    leg_test()
+
+    while True:
+        # Scheduler
+        schedule.run_pending()
+
+        # Rainbow
         for i in range(len(rainbow_colors)):
             start_color = rainbow_colors[i]
             end_color = rainbow_colors[(i + 1) % len(rainbow_colors)]
@@ -91,12 +111,5 @@ def rainbow():
                 pixel.fill(color)
                 time.sleep(0.01)  # Adjust speed of the gradient
 
-async def main():
-    print("Starting tests")
-    print(f"Battery voltage: {get_battery_voltage():.2f}V")
-    print(f"Battery percentage: {get_battery_percentage()}%")
-    light_test()
-    leg_test()
-    rainbow()
 
 asyncio.run(main())

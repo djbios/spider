@@ -52,9 +52,11 @@ battery_adc = analogio.AnalogIn(pins.BATTERY_ADC)
 def get_battery_voltage() -> float:
     # Convert the analog reading to voltage
     return battery_adc.value * VOLTAGE_MULTIPLIER
+
 def get_battery_percentage() -> int:
     voltage = get_battery_voltage()
-    return int((voltage - BATTERY_MIN_VOLTAGE) / (BATTERY_MAX_VOLTAGE - BATTERY_MIN_VOLTAGE) * 100)
+    perc = int((voltage - BATTERY_MIN_VOLTAGE) / (BATTERY_MAX_VOLTAGE - BATTERY_MIN_VOLTAGE) * 100)
+    return max(0, min(100, perc))
 
 def light_test():
     print("Light test")
@@ -70,12 +72,10 @@ def leg_test():
     print("Leg test")
     for leg in [leg1, leg2, leg3, leg4]:
         for joint in [leg.hip, leg.knee, leg.ankle]:
-            joint.move(80)
-            time.sleep(0.2)
-            joint.move(100)
-            time.sleep(0.2)
-            joint.move(90)
-            time.sleep(0.2)
+            for angle in [80, 100, 90]:
+                joint.move(angle, speed=0.2)
+                time.sleep(0.5)
+            
     print("Leg test done")
 
 def print_battery():

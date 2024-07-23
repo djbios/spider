@@ -38,9 +38,20 @@ class Joint:
         self.pwm = PWMOut(pin, duty_cycle=0, frequency=50)
         self.servo = servo.Servo(self.pwm)
 
-    def move(self, angle: float):
+    def move(self, angle: float, speed: float = 1.0):
+        if self.servo.angle is None:
+            self.servo.angle = angle
+            return
+
+        current_angle = self.servo.angle
+        steps = int(100 * speed)
+        step_size = (angle - current_angle) / steps
+        for _ in range(steps):
+            current_angle += step_size
+            self.servo.angle = current_angle
+            time.sleep(0.01)
         self.servo.angle = angle
-        time.sleep(0.05)
+
 
 class Leg:
     def __init__(self, hip: Joint, knee: Joint, ankle: Joint):
@@ -48,9 +59,9 @@ class Leg:
         self.knee = knee
         self.ankle = ankle
     
-    def move(self, hip: float, knee: float, ankle: float):
+    def move(self, hip: float, knee: float, ankle: float, speed: float = 1):
         # TODO make it smoother (interpolate)
-        self.hip.move(hip)
-        self.knee.move(knee)
-        self.ankle.move(ankle)
+        self.hip.move(hip, speed)
+        self.knee.move(knee, speed)
+        self.ankle.move(ankle, speed)
     

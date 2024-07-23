@@ -2,3 +2,4 @@ excluded_files.txt
 deploy.sh
 .vscode/
 .git/
+extra_libs/

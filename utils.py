@@ -35,7 +35,7 @@ def interpolate_color(color1, color2, factor):
 
 class Joint:
     def __init__(self, pin):
-        self.pwm = PWMOut(pin, duty_cycle=2 ** 15, frequency=50)
+        self.pwm = PWMOut(pin, duty_cycle=0, frequency=50)
         self.servo = servo.Servo(self.pwm)
 
     def move(self, angle: float):
@@ -43,12 +43,14 @@ class Joint:
         time.sleep(0.05)
 
 class Leg:
-    def __init__(self, joint1: Joint, joint2: Joint, joint3: Joint):
-        self.joint1 = joint1
-        self.joint2 = joint2
-        self.joint3 = joint3
+    def __init__(self, hip: Joint, knee: Joint, ankle: Joint):
+        self.hip = hip
+        self.knee = knee
+        self.ankle = ankle
     
-    def move(self, angle1: float, angle2: float, angle3: float):
-        self.joint1.move(angle1)
-        self.joint2.move(angle2)
-        self.joint3.move(angle3)
+    def move(self, hip: float, knee: float, ankle: float):
+        # TODO make it smoother (interpolate)
+        self.hip.move(hip)
+        self.knee.move(knee)
+        self.ankle.move(ankle)
+    

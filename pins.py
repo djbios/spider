@@ -22,3 +22,6 @@ LEG4_ANKLE = board.GP9
 LED_STRIP = board.GP7
 
 BATTERY_ADC = board.A0
+
+# TODO UART_TX = board.TX
+# TODO UART_RX = board.RX

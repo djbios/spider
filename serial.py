@@ -6,7 +6,7 @@ from routines import BaseRoutine, RoutinesRegistry
 @RoutinesRegistry.register()
 class UARTRoutine(BaseRoutine):
     def __init__(self) -> None:
-        self.uart = busio.UART(pins.UART_TX, pins.UART_RX, baudrate=9600)
+        self.uart = busio.UART(pins.UART_TX, pins.UART_RX, baudrate=115200)
 
         super().__init__()
 

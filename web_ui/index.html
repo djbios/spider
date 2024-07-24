@@ -80,12 +80,14 @@
             </div>
             <div class="col-md-6">
                 <label for="apiIp" class="form-label">Robot API IP Address</label>
-                <input type="text" class="form-control" id="apiIp" placeholder="Enter API IP address">
+                <input type="text" class="form-control" id="apiIp" placeholder="Enter API IP address" value="192.168.178.125">
             </div>
         </div>
         <div class="row">
             <div class="col-md-6 mb-4">
-                <img id="camera-stream" src="http://192.168.178.125/stream" alt="Camera Stream">
+                <div class="img-container" style="transform: rotate(90deg); max-width: 70%;">
+                    <img id="camera-stream" src="http://192.168.178.125/stream" alt="Camera Stream">
+                </div>
             </div>
             <div class="col-md-6">
                 <div class="row control-row text-center mb-4">

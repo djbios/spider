@@ -1,3 +1,4 @@
+import random
 import time
 from pwmio import PWMOut
 from adafruit_motor import servo
@@ -7,18 +8,6 @@ import analogio
 VOLTAGE_MULTIPLIER = 0.0002985503
 BATTERY_MAX_VOLTAGE = 12.6
 BATTERY_MIN_VOLTAGE = 9.6
-
-
-def pwm_fade_in_out(pwm_pin, fade_time=0.5, steps=100):
-    step_delay = fade_time / steps
-    for i in range(steps):
-        # Increase the duty cycle for fade in
-        pwm_pin.duty_cycle = int((i / steps) * 65535)
-        time.sleep(step_delay)
-    for i in range(steps, 0, -1):
-        # Decrease the duty cycle for fade out
-        pwm_pin.duty_cycle = int((i / steps) * 65535)
-        time.sleep(step_delay)
 
 
 # Define the rainbow colors
@@ -71,6 +60,7 @@ class Battery:
         return max(0, min(100, perc))
 
 
+
 class Joint:
     def __init__(self, pin):
         self.pwm = PWMOut(pin, duty_cycle=0, frequency=50)
@@ -108,6 +98,59 @@ class Leg:
         self.hip.move(hip, speed)
         self.knee.move(knee, speed)
         self.ankle.move(ankle, speed)
+
+
+class Walker:
+    def __init__(self, leg1, leg2, leg3, leg4):
+        self.leg1 = leg1
+        self.leg2 = leg2
+        self.leg3 = leg3
+        self.leg4 = leg4
+        self.legs = [leg1, leg2, leg3, leg4]
+        print("Walker initialized")
+    
+    def wiggle(self, movements=100, speed=1):
+        print("Wiggle")
+
+        for _ in range(movements):
+            for leg in self.legs:
+                joint = random.choice([leg.hip, leg.knee, leg.ankle])
+                angle = random.randint(70, 110)
+                joint.move(angle, speed=speed)
+            time.sleep(0.1)
+        self.to_zero()
+        print("Wiggle done")
+
+    def to_zero(self):
+        print("To zero")
+        for leg in self.legs:
+            leg.move(90, 90, 90)
+        print("To zero done")
+
+class Light:
+    def __init__(self, pwm):
+        self.pwm = pwm
+        print("Light initialized")
+
+    def turn_on(self):
+        self.pwm.duty_cycle = 65535
+        print("Light on")
+    
+    def turn_off(self):
+        self.pwm.duty_cycle = 0
+        print("Light off")
+
+    def fade_in(self, fade_time=0.5):
+        step_delay = fade_time / 100
+        for i in range(100):
+            self.pwm.duty_cycle = int((i / 100) * 65535)
+            time.sleep(step_delay)
+
+    def fade_out(self, fade_time=0.5):
+        step_delay = fade_time / 100
+        for i in range(100, 0, -1):
+            self.pwm.duty_cycle = int((i / 100) * 65535)
+            time.sleep(step_delay)
 
 
 # Rainbow TODO refactor as a routine

@@ -11,7 +11,10 @@ class UARTRoutine(BaseRoutine):
         super().__init__()
 
     async def tick(self):
-        data = self.uart.read(32)
-        if data is not None:
-            data_str = ''.join([chr(b) for b in data])
-            print(data_str, end='')
+        ...
+        # TODO Make it non-blocking by using StreamReader
+
+        # data = self.uart.read(32)
+        # if data is not None:
+        #     data_str = ''.join([chr(b) for b in data])
+        #     print(data_str, end='')

@@ -46,11 +46,15 @@ class SchedulerRoutine(BaseRoutine):
 
 async def actions_cycle():
     joint = walker.leg1.ankle
-
+    joint.set_speed(1000)
+    joint.set_acceleration(1000)
+    joint.set_target(90)  # Move to 90 degrees
+    joint.start()
     while True:
-        for _ in range(3):
-            await joint.move_and_wait(110)
-            await joint.move_and_wait(70)
+        await joint.move_and_wait(170)
+        #await asyncio.sleep(1)
+        await joint.move_and_wait(40)
+        #await asyncio.sleep(1)
 
 
 # Main
@@ -65,11 +69,8 @@ async def main():
 
     RoutinesRegistry.initialise()
 
-    joint = walker.leg1.ankle
-    joint.set_speed(10)
-    joint.set_acceleration(0.5)
-    joint.set_target(90)  # Move to 90 degrees
-    joint.start()
+        
+    
 
     await asyncio.gather(
         asyncio.create_task(RoutinesRegistry.tick()),

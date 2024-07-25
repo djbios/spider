@@ -67,49 +67,76 @@ class JointRoutine(BaseRoutine):
 
     async def tick(self):
         for joint in self.joints:
-                joint.tick()
+            joint.tick()
 
 
 class SmoothServo:
     def __init__(self, pin, min_angle=0, max_angle=180, default_angle=90):
+        """
+        :param pin: PWM pin
+        :param min_angle: Minimum angle, physical limit
+        :param max_angle: Maximum angle, physical limit
+        :param default_angle: Default angle, starting position
+        """
         self.pwm = PWMOut(pin, duty_cycle=0, frequency=50)
         self.servo = servo.Servo(self.pwm)
         self.min_angle = min_angle
         self.max_angle = max_angle
         self.current_angle = default_angle
         self.target_angle = default_angle
-        self.speed = 1
+        self.speed = 0  # Initial speed
+        self.max_speed = 1
         self.acceleration = 1
         self.tick_flag = False
         self.last_update_time = time.monotonic()
+        self.servo.angle = self.current_angle
 
-    def set_speed(self, speed):
-        self.speed = speed
+    def set_speed(self, max_speed):
+        """
+        :param max_speed: Maximum speed of the servo in degrees per second"""
+        self.max_speed = max_speed
 
     def set_acceleration(self, acceleration):
+        """
+        :param acceleration: Acceleration of the servo in degrees per second squared
+        """
         self.acceleration = acceleration
 
     def set_target(self, target_angle):
+        """
+        :param target_angle: Target angle for the servo in degrees
+        """
         self.target_angle = max(self.min_angle, min(self.max_angle, target_angle))
 
     def tick(self):
-        if not self.tick_flag:
-            return
+        """
+        Should be called in a loop to update the servo position
+        """
         current_time = time.monotonic()
         delta_time = current_time - self.last_update_time
         self.last_update_time = current_time
 
-        error = self.target_angle - self.current_angle
-        if abs(error) > 1:
-            direction = math.copysign(1, error)
-            speed = min(abs(error), self.speed * delta_time)
-            self.current_angle += direction * speed
+        err = self.target_angle - self.current_angle
+        if abs(err) > 0.1:
+            deceleration_distance = (self.speed * self.speed) / (2 * self.acceleration)
+            if deceleration_distance >= abs(err):
+                self.speed -= self.acceleration * delta_time * self._sign(self.speed)
+            else:
+                self.speed += self.acceleration * delta_time * self._sign(err)
+
+            self.speed = max(-self.max_speed, min(self.max_speed, self.speed))
+            self.current_angle += self.speed * delta_time
             self.servo.angle = self.current_angle
         else:
-            self.current_angle = self.target_angle
-            self.servo.angle = self.current_angle
-            self.tick_flag = False
-            print("Finished movement")
+            self.stop()
+
+    def _sign(self, value):
+        if value > 0:
+            return 1
+        elif value < 0:
+            return -1
+        else:
+            return 0
 
     def start(self):
         self.tick_flag = True
@@ -119,37 +146,19 @@ class SmoothServo:
         self.tick_flag = False
 
 
-
-class Joint:
+class Joint(SmoothServo):
     def __init__(self, pin):
-        self.smooth_servo = SmoothServo(pin)
+        super().__init__(pin)
         JointRoutine.joints.append(self)
+        print("Joint initialized")
 
-    def set_speed(self, speed):
-        self.smooth_servo.set_speed(speed)
-
-    def set_acceleration(self, acceleration):
-        self.smooth_servo.set_acceleration(acceleration)
-
-    def set_target(self, target_angle):
-        self.smooth_servo.set_target(target_angle)
-
-    def start(self):
-        self.smooth_servo.start()
-
-    def stop(self):
-        self.smooth_servo.stop()
-
-    def tick(self):
-        self.smooth_servo.tick()
 
     async def move_and_wait(self, angle):
         print(f"Moving to {angle}")
         self.set_target(angle)
         self.start()
-        while self.smooth_servo.tick_flag:
+        while self.tick_flag:
             await asyncio.sleep(0.01)
-     
 
 
 class Leg:

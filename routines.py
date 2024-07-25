@@ -28,6 +28,6 @@ class RoutinesRegistry:
         while True:
             for routine in cls.routines_instances:
                 await routine.tick()
-                await asyncio.sleep(0.01)
+                await asyncio.sleep(0.00001)
 
 

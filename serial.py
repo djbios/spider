@@ -10,7 +10,7 @@ class UARTRoutine(BaseRoutine):
 
         super().__init__()
 
-    async def run(self):
+    async def tick(self):
         data = self.uart.read(32)
         if data is not None:
             data_str = ''.join([chr(b) for b in data])

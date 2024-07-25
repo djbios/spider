@@ -1,12 +1,12 @@
 class BaseRoutine:
-    async def run(self):
+    async def tick(self):
         """Routine main method, expected to be ran in a while true loop"""
         raise NotImplementedError
 
 
 class RoutinesRegistry:
-    routines_classes = []
-    routines_instances = []
+    routines_classes: list[type[BaseRoutine]] = []
+    routines_instances: list[BaseRoutine] = []
 
     @classmethod
     def register(cls):
@@ -21,8 +21,8 @@ class RoutinesRegistry:
         cls.routines_instances = [routine() for routine in cls.routines_classes]
 
     @classmethod
-    async def run(cls):
+    async def tick(cls):
         for routine in cls.routines_instances:
-            await routine.run()
+            await routine.tick()
 
 

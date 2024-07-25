@@ -25,7 +25,7 @@ def leg_test():
     for leg in walker.legs:
         for joint in [leg.hip, leg.knee, leg.ankle]:
             for angle in [80, 100, 90]:
-                joint.move(angle, speed=1)
+                joint.move(angle)
                 time.sleep(0.2)
 
     print("Leg test done")
@@ -39,7 +39,7 @@ class SchedulerRoutine(BaseRoutine):
         print("SchedulerRoutine initialized")
         super().__init__()
 
-    async def run(self):
+    async def tick(self):
         schedule.run_pending()
 
 
@@ -49,11 +49,14 @@ async def main():
 
     light_test()
     leg_test()
+    walker.wiggle(30)
+    walker.to_zero()
+    battery.print_battery()
 
     RoutinesRegistry.initialise()
-
+    
     while True:
-        await RoutinesRegistry.run()
+        await RoutinesRegistry.tick()
 
 
 asyncio.run(main())

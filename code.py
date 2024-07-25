@@ -10,6 +10,7 @@ from serial import *  # noqa
 
 # Tests
 
+
 def light_test():
     print("Light test")
 
@@ -43,20 +44,37 @@ class SchedulerRoutine(BaseRoutine):
         schedule.run_pending()
 
 
+async def actions_cycle():
+    joint = walker.leg1.ankle
+
+    while True:
+        for _ in range(3):
+            await joint.move_and_wait(110)
+            await joint.move_and_wait(70)
+
+
 # Main
 async def main():
     print("Starting tests")
 
     light_test()
-    leg_test()
-    walker.wiggle(30)
-    walker.to_zero()
+    # leg_test()
+    # walker.wiggle(30)
+    # walker.to_zero()
     battery.print_battery()
 
     RoutinesRegistry.initialise()
-    
-    while True:
-        await RoutinesRegistry.tick()
+
+    joint = walker.leg1.ankle
+    joint.set_speed(10)
+    joint.set_acceleration(0.5)
+    joint.set_target(90)  # Move to 90 degrees
+    joint.start()
+
+    await asyncio.gather(
+        asyncio.create_task(RoutinesRegistry.tick()),
+        asyncio.create_task(actions_cycle()),
+    )
 
 
 asyncio.run(main())

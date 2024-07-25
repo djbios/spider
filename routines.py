@@ -1,3 +1,6 @@
+import asyncio
+
+
 class BaseRoutine:
     async def tick(self):
         """Routine main method, expected to be ran in a while true loop"""
@@ -22,7 +25,9 @@ class RoutinesRegistry:
 
     @classmethod
     async def tick(cls):
-        for routine in cls.routines_instances:
-            await routine.tick()
+        while True:
+            for routine in cls.routines_instances:
+                await routine.tick()
+                await asyncio.sleep(0.01)
 
 

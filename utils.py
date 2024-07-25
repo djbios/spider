@@ -4,7 +4,8 @@ from pwmio import PWMOut
 from adafruit_motor import servo
 import analogio
 from routines import RoutinesRegistry, BaseRoutine
-
+import math
+import asyncio
 
 VOLTAGE_MULTIPLIER = 0.0002985503
 BATTERY_MAX_VOLTAGE = 12.6
@@ -64,52 +65,91 @@ class Battery:
 class JointRoutine(BaseRoutine):
     joints = []
 
-    async def run(self):
-        # Tick
-        ...
+    async def tick(self):
+        for joint in self.joints:
+                joint.tick()
+
+
+class SmoothServo:
+    def __init__(self, pin, min_angle=0, max_angle=180, default_angle=90):
+        self.pwm = PWMOut(pin, duty_cycle=0, frequency=50)
+        self.servo = servo.Servo(self.pwm)
+        self.min_angle = min_angle
+        self.max_angle = max_angle
+        self.current_angle = default_angle
+        self.target_angle = default_angle
+        self.speed = 1
+        self.acceleration = 1
+        self.tick_flag = False
+        self.last_update_time = time.monotonic()
+
+    def set_speed(self, speed):
+        self.speed = speed
+
+    def set_acceleration(self, acceleration):
+        self.acceleration = acceleration
+
+    def set_target(self, target_angle):
+        self.target_angle = max(self.min_angle, min(self.max_angle, target_angle))
+
+    def tick(self):
+        if not self.tick_flag:
+            return
+        current_time = time.monotonic()
+        delta_time = current_time - self.last_update_time
+        self.last_update_time = current_time
+
+        error = self.target_angle - self.current_angle
+        if abs(error) > 1:
+            direction = math.copysign(1, error)
+            speed = min(abs(error), self.speed * delta_time)
+            self.current_angle += direction * speed
+            self.servo.angle = self.current_angle
+        else:
+            self.current_angle = self.target_angle
+            self.servo.angle = self.current_angle
+            self.tick_flag = False
+            print("Finished movement")
+
+    def start(self):
+        self.tick_flag = True
+        self.last_update_time = time.monotonic()
+
+    def stop(self):
+        self.tick_flag = False
+
 
 
 class Joint:
-    default_angle = 90
-
     def __init__(self, pin):
-        self.pwm = PWMOut(pin, duty_cycle=0, frequency=50)
-        self.servo = servo.Servo(self.pwm)
-        self.current_angle = self.default_angle  # Default angle
+        self.smooth_servo = SmoothServo(pin)
         JointRoutine.joints.append(self)
-        print(f"Joint initialized with pin {pin}")
 
-    def move(
-        self, target_angle: float, max_speed: float = 1.0, max_acceleration: float = 0.5
-    ):
-        current_angle = (
-            self.servo.angle if self.servo.angle is not None else self.default_angle
-        )
-        err = target_angle - current_angle
+    def set_speed(self, speed):
+        self.smooth_servo.set_speed(speed)
 
-        if abs(err) <= 0.1:
-            self.servo.angle = target_angle
-            return
+    def set_acceleration(self, acceleration):
+        self.smooth_servo.set_acceleration(acceleration)
 
-        speed = 0
-        delta = 0.01  # Time step in seconds
-        while abs(err) > 0.1:
-            braking = speed * speed / max_acceleration / 2.0 >= abs(err)
-            speed += (
-                max_acceleration
-                * delta
-                * (-1 if braking else 1)
-                * (1 if err >= 0 else -1)
-            )
-            speed = max(
-                -max_speed, min(speed, max_speed)
-            )  # Constrain speed to max_speed
-            current_angle += speed * delta
-            self.servo.angle = current_angle
-            err = target_angle - current_angle
-            # time.sleep(delta)
+    def set_target(self, target_angle):
+        self.smooth_servo.set_target(target_angle)
 
-        self.servo.angle = target_angle
+    def start(self):
+        self.smooth_servo.start()
+
+    def stop(self):
+        self.smooth_servo.stop()
+
+    def tick(self):
+        self.smooth_servo.tick()
+
+    async def move_and_wait(self, angle):
+        print(f"Moving to {angle}")
+        self.set_target(angle)
+        self.start()
+        while self.smooth_servo.tick_flag:
+            await asyncio.sleep(0.01)
+     
 
 
 class Leg:
@@ -142,25 +182,25 @@ class Walker:
         self.legs = [leg1, leg2, leg3, leg4]
         print("Walker initialized")
 
-    def wiggle(
-        self, movements=100, max_speed: float = 1.0, max_acceleration: float = 0.1
-    ):
-        print("Wiggle")
+    # def wiggle(
+    #     self, movements=100, max_speed: float = 1.0, max_acceleration: float = 0.1
+    # ):
+    #     print("Wiggle")
 
-        for _ in range(movements):
-            joint_name = random.choice(["hip", "knee", "ankle"])
-            angle = random.randint(70, 110)
-            for leg in self.legs:
-                getattr(leg, joint_name).move(angle, max_speed, max_acceleration)
-            time.sleep(0.1)
-        self.to_zero()
-        print("Wiggle done")
+    #     for _ in range(movements):
+    #         joint_name = random.choice(["hip", "knee", "ankle"])
+    #         angle = random.randint(70, 110)
+    #         for leg in self.legs:
+    #             getattr(leg, joint_name).move(angle, max_speed, max_acceleration)
+    #         time.sleep(0.1)
+    #     self.to_zero()
+    #     print("Wiggle done")
 
-    def to_zero(self):
-        print("To zero")
-        for leg in self.legs:
-            leg.move(90, 90, 90)
-        print("To zero done")
+    # def to_zero(self):
+    #     print("To zero")
+    #     for leg in self.legs:
+    #         leg.move(90, 90, 90)
+    #     print("To zero done")
 
 
 class Light:

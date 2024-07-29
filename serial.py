@@ -6,15 +6,12 @@ from routines import BaseRoutine, RoutinesRegistry
 @RoutinesRegistry.register()
 class UARTRoutine(BaseRoutine):
     def __init__(self) -> None:
-        self.uart = busio.UART(pins.UART_TX, pins.UART_RX, baudrate=115200)
+        self.uart = busio.UART(pins.UART_TX, pins.UART_RX, baudrate=115200, timeout=0.0001)
 
         super().__init__()
 
     async def tick(self):
-        ...
-        # TODO Make it non-blocking by using StreamReader
-
-        # data = self.uart.read(32)
-        # if data is not None:
-        #     data_str = ''.join([chr(b) for b in data])
-        #     print(data_str, end='')
+        data = self.uart.read()
+        if data is not None:
+            data_str = ''.join([chr(b) for b in data])
+            print(data_str, end='')

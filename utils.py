@@ -87,7 +87,7 @@ class SmoothServo:
         self.speed = 0  # Initial speed
         self.max_speed = 1
         self.acceleration = 1
-        self.tick_flag = False
+        self.in_motion = False
         self.last_update_time = time.monotonic()
         self.servo.angle = self.current_angle
 
@@ -125,7 +125,20 @@ class SmoothServo:
                 self.speed += self.acceleration * delta_time * self._sign(err)
 
             self.speed = max(-self.max_speed, min(self.max_speed, self.speed))
-            self.current_angle += self.speed * delta_time
+
+            step = self.speed * delta_time
+            # if abs(step) > abs(err):
+            #     next_angle = self.target_angle
+            # else:
+            next_angle = max(
+                min(self.current_angle + step, self.max_angle), self.min_angle
+            )
+
+            assert (
+                self.min_angle <= next_angle <= self.max_angle
+            ), f"Angle out of bounds: {next_angle}, {step}, {err}, {self.target_angle}, {self.current_angle}"
+
+            self.current_angle = next_angle
             self.servo.angle = self.current_angle
         else:
             self.stop()
@@ -139,25 +152,32 @@ class SmoothServo:
             return 0
 
     def start(self):
-        self.tick_flag = True
+        self.in_motion = True
         self.last_update_time = time.monotonic()
 
     def stop(self):
-        self.tick_flag = False
+        self.in_motion = False
+
+    def deactivate(self):
+        self.stop()
+        self.servo._pwm.duty_cycle = 0
+
+    def hard_move(self, angle):
+        self.servo.angle = angle
 
 
 class Joint(SmoothServo):
-    def __init__(self, pin):
+    def __init__(self, pin, speed, acceleration):
         super().__init__(pin)
         JointRoutine.joints.append(self)
+        self.set_speed(speed)
+        self.set_acceleration(acceleration)
         print("Joint initialized")
 
-
-    async def move_and_wait(self, angle):
-        print(f"Moving to {angle}")
+    async def move(self, angle):
         self.set_target(angle)
         self.start()
-        while self.tick_flag:
+        while self.in_motion:
             await asyncio.sleep(0.01)
 
 
@@ -168,22 +188,22 @@ class Leg:
         self.ankle = ankle
         print("Leg initialized")
 
-    def move(
+    async def move(
         self,
         hip: float,
         knee: float,
         ankle: float,
-        max_speed: float = 1.0,
-        max_acceleration: float = 0.1,
     ):
-        # TODO make it smoother (interpolate)
-        self.hip.move(hip, max_speed, max_acceleration)
-        self.knee.move(knee, max_speed, max_acceleration)
-        self.ankle.move(ankle, max_speed, max_acceleration)
+        tasks = []
+        tasks.append(self.hip.move(hip))
+        tasks.append(self.knee.move(knee))
+        tasks.append(self.ankle.move(ankle))
+
+        await asyncio.gather(*tasks)
 
 
 class Walker:
-    def __init__(self, leg1, leg2, leg3, leg4):
+    def __init__(self, leg1: Leg, leg2: Leg, leg3: Leg, leg4: Leg):
         self.leg1 = leg1
         self.leg2 = leg2
         self.leg3 = leg3
@@ -191,25 +211,35 @@ class Walker:
         self.legs = [leg1, leg2, leg3, leg4]
         print("Walker initialized")
 
-    # def wiggle(
-    #     self, movements=100, max_speed: float = 1.0, max_acceleration: float = 0.1
-    # ):
-    #     print("Wiggle")
+    async def wiggle(self, movements):
+        print("Wiggle")
 
-    #     for _ in range(movements):
-    #         joint_name = random.choice(["hip", "knee", "ankle"])
-    #         angle = random.randint(70, 110)
-    #         for leg in self.legs:
-    #             getattr(leg, joint_name).move(angle, max_speed, max_acceleration)
-    #         time.sleep(0.1)
-    #     self.to_zero()
-    #     print("Wiggle done")
+        for _ in range(movements):
+            tasks = []
+            for leg in self.legs:
+                tasks.append(
+                    leg.move(
+                        random.randint(80, 110),
+                        random.randint(50, 140),
+                        random.randint(50, 160),
+                    )
+                )
 
-    # def to_zero(self):
-    #     print("To zero")
-    #     for leg in self.legs:
-    #         leg.move(90, 90, 90)
-    #     print("To zero done")
+            await asyncio.gather(*tasks)
+
+    def deactivate(self):
+        for leg in self.legs:
+            for joint in [leg.hip, leg.knee, leg.ankle]:
+                joint.deactivate()
+
+        self.to_zero()
+        print("Wiggle done")
+
+    async def to_zero(self):
+        print("To zero")
+        for leg in self.legs:
+            await leg.move(90, 90, 90)
+        print("To zero done")
 
 
 class Light:
@@ -218,12 +248,10 @@ class Light:
         print("Light initialized")
 
     def turn_on(self):
-        self.pwm.duty_cycle = 65535
-        print("Light on")
+        self.pwm.duty_cycle = 65535  # TODO refactor to use a constant
 
     def turn_off(self):
         self.pwm.duty_cycle = 0
-        print("Light off")
 
     def fade_in(self, fade_time=0.5):
         step_delay = fade_time / 100
@@ -236,6 +264,43 @@ class Light:
         for i in range(100, 0, -1):
             self.pwm.duty_cycle = int((i / 100) * 65535)
             time.sleep(step_delay)
+
+def find_hard_limits(walker: Walker):
+    import json
+    hard_limits_config = {}
+    for i, leg in enumerate(walker.legs):
+        for joint_name in ['hip', 'knee', 'ankle']:
+            print(f"Finding hard limits for leg {i} {joint_name}")
+            joint = getattr(leg, joint_name)
+
+            
+            print(f"Find max for leg {i} {joint_name}")
+            current_angle = 90
+            while True:
+                try:
+                    current_angle = current_angle + 1
+                    joint.hard_move(current_angle)
+                    time.sleep(0.1)
+                except (KeyboardInterrupt, ValueError):
+                    break
+            hard_limits_config[f"leg_{i}_{joint_name}_max"] = current_angle
+
+            print(f"Find min for leg {i} {joint_name}")
+            current_angle = 90
+            
+            while True:
+                try:
+                    current_angle = current_angle - 1
+                    joint.hard_move(current_angle)
+                    time.sleep(0.1)
+                except (KeyboardInterrupt, ValueError):
+                    break
+            hard_limits_config[f"leg_{i}_{joint_name}_min"] = current_angle
+            joint.hard_move(90)
+
+
+    print(json.dumps(hard_limits_config))
+    
 
 
 # Rainbow TODO refactor as a routine

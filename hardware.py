@@ -1,8 +1,9 @@
 import pins
-from utils import Battery, Joint, Leg, Light, Walker
+from utils import Battery, Joint, Leg, Light, Walker, Accelerometr, Storage
 import pwmio
 import busio
 from adafruit_pca9685 import PCA9685
+
 
 DEFAULT_SPEED = 1000
 DEFAULT_ACCELERATION = 1000
@@ -107,3 +108,7 @@ walker.apply_hard_limits(WALKER_CALIBRATED_HARD_LIMITS)
 light = Light(pwmio.PWMOut(pins.LED_STRIP))
 
 battery = Battery(pins.BATTERY_ADC)
+
+accelerometer = Accelerometr(i2c)
+
+storage = Storage()

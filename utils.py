@@ -5,6 +5,10 @@ import analogio
 from routines import RoutinesRegistry, BaseRoutine
 import asyncio
 from adafruit_pca9685 import PWMChannel
+import adafruit_adxl34x
+import math
+import storage
+import json
 
 VOLTAGE_MULTIPLIER = 0.0002985503
 BATTERY_MAX_VOLTAGE = 12.6
@@ -294,7 +298,7 @@ class Walker:
         print(json.dumps(hard_limits_config))
 
     def apply_hard_limits(self, hard_limits_dict: dict[str,int]):
-        for i, leg in enumerate(self.legs, start=1):
+        for i, leg in enumerate(self.legs):
             for joint_name in ['hip', 'knee', 'ankle']:
                 joint = getattr(leg, joint_name)
                 joint.min_angle = hard_limits_dict[f"leg_{i}_{joint_name}_min"]
@@ -324,16 +328,120 @@ class Light:
             self.pwm.duty_cycle = int((i / 100) * 65535)
             time.sleep(step_delay)
 
+class Accelerometr(adafruit_adxl34x.ADXL345):
 
+    def __init__(self, i2c):
+        super().__init__(i2c)
+        self.zero_x = 0
+        self.zero_y = 0
+        self.zero_z = 0
+
+        print("Accelerometer initialized")
+
+    @property
+    def xyz(self) -> tuple[float, float, float]:
+        x, y, z = self.acceleration
+        x -= self.zero_x
+        y -= self.zero_y
+        z -= self.zero_z
+        return x, y, z
     
+    def print_xyz(self):
+        x, y, z = self.xyz
+        print(f"x: {x}, y: {y}, z: {z}")
+
+    def print_xyz_cycle(self, period=0.5):
+        while True:
+            self.print_xyz()
+            time.sleep(period)
+
+    @property
+    def angles(self):
+        x, y, z = self.xyz
+        pitch = -1 * math.atan2(x, math.sqrt(y ** 2 + z ** 2)) * 180 / math.pi
+        roll = math.atan2(y, z) * 180 / math.pi
+        return pitch, roll
+
+    def print_angles(self):
+        pitch, roll = self.angles
+        print(f"Pitch: {pitch}, Roll: {roll}")
+    
+    def print_angles_cycle(self, period=0.5):
+        while True:
+            self.print_angles()
+            time.sleep(period)
+
+    def calibrate_zero(self):
+        print("Put the robot on a flat surface.")
+        input("Press enter to calibrate...")
+        
+        initial_x, initial_y, initial_z = self.acceleration
+        self.zero_x = initial_x
+        self.zero_y = initial_y
+        self.zero_z = initial_z - 9.81  # Assuming the z-axis reads gravitational acceleration
+
+        print("Calibration complete.")
+        print(f"Offsets - X: {self.zero_x}, Y: {self.zero_y}, Z: {self.zero_z}")
+        print(f"Values after calibration: {self.xyz}")
 
 
-# Rainbow TODO refactor as a routine
-# for i in range(len(rainbow_colors)):
-#     start_color = rainbow_colors[i]
-#     end_color = rainbow_colors[(i + 1) % len(rainbow_colors)]
-#     for j in range(100):  # 100 steps for smooth transition
-#         factor = j / 100.0
-#         color = interpolate_color(start_color, end_color, factor)
-#         pixel.fill(color)
-#         time.sleep(0.01)  # Adjust speed of the gradient
+class Storage(dict):
+    def __init__(self, filename='data.json'):
+        self.filename = filename
+        self._data = {}
+        self._load_data()
+
+    def _load_data(self):
+        """Load data from the JSON file if it exists."""
+        try:
+            with open(self.filename, 'r') as f:
+                self._data = json.load(f)
+        except (OSError, ValueError, RuntimeError):
+            self._data = {}
+            print("Failed to load data from the JSON file.")
+
+    def _save_data(self):
+        """Save data to the JSON file."""
+        # Switch the filesystem to write mode
+        try:
+            storage.remount("/", readonly=False)
+        except RuntimeError:
+            print("Failed to remount the filesystem to write mode.")
+            return
+        with open(self.filename, 'w') as f:
+            json.dump(self._data, f)
+        # Switch the filesystem back to read-only mode
+        storage.remount("/", readonly=True)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
+        self._save_data()
+
+    def __delitem__(self, key):
+        del self._data[key]
+        self._save_data()
+
+    def __contains__(self, key):
+        return key in self._data
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def keys(self):
+        return self._data.keys()
+
+    def values(self):
+        return self._data.values()
+
+    def items(self):
+        return self._data.items()
+
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+    def clear(self):
+        self._data.clear()
+        self._save_data()

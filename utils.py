@@ -1,11 +1,10 @@
 import random
 import time
-from pwmio import PWMOut
 from adafruit_motor import servo
 import analogio
 from routines import RoutinesRegistry, BaseRoutine
-import math
 import asyncio
+from adafruit_pca9685 import PWMChannel
 
 VOLTAGE_MULTIPLIER = 0.0002985503
 BATTERY_MAX_VOLTAGE = 12.6
@@ -71,15 +70,15 @@ class JointRoutine(BaseRoutine):
 
 
 class SmoothServo:
-    def __init__(self, pin, min_angle=0, max_angle=180, default_angle=90):
+    def __init__(self, pwm: PWMChannel, min_angle=0, max_angle=180, default_angle=90):
         """
         :param pin: PWM pin
         :param min_angle: Minimum angle, physical limit
         :param max_angle: Maximum angle, physical limit
         :param default_angle: Default angle, starting position
         """
-        self.pwm = PWMOut(pin, duty_cycle=0, frequency=50)
-        self.servo = servo.Servo(self.pwm)
+        self.pwm = pwm
+        self._servo = servo.Servo(self.pwm)
         self.min_angle = min_angle
         self.max_angle = max_angle
         self.current_angle = default_angle
@@ -89,7 +88,10 @@ class SmoothServo:
         self.acceleration = 1
         self.in_motion = False
         self.last_update_time = time.monotonic()
-        self.servo.angle = self.current_angle
+        self.mid_angle = 90
+
+        self.set_servo_angle(self.current_angle)
+        
 
     def set_speed(self, max_speed):
         """
@@ -139,7 +141,7 @@ class SmoothServo:
             ), f"Angle out of bounds: {next_angle}, {step}, {err}, {self.target_angle}, {self.current_angle}"
 
             self.current_angle = next_angle
-            self.servo.angle = self.current_angle
+            self.set_servo_angle(self.current_angle)
         else:
             self.stop()
 
@@ -160,15 +162,22 @@ class SmoothServo:
 
     def deactivate(self):
         self.stop()
-        self.servo._pwm.duty_cycle = 0
+        self._servo._pwm.duty_cycle = 0
 
     def hard_move(self, angle):
-        self.servo.angle = angle
+        self.set_servo_angle(angle)
 
+    def set_servo_angle(self, angle):
+        calibrated_angle = angle + self.mid_angle - 90
+        self._servo.angle = calibrated_angle
 
+    def apply_calibration(self, mid_angle):
+        self.mid_angle = mid_angle
+        self.set_servo_angle(self.current_angle)
+        
 class Joint(SmoothServo):
-    def __init__(self, pin, speed, acceleration):
-        super().__init__(pin)
+    def __init__(self, channel: PWMChannel, speed, acceleration):
+        super().__init__(channel)
         JointRoutine.joints.append(self)
         self.set_speed(speed)
         self.set_acceleration(acceleration)
@@ -221,7 +230,7 @@ class Walker:
                     leg.move(
                         random.randint(80, 110),
                         random.randint(50, 140),
-                        random.randint(50, 160),
+                        random.randint(50, 150),
                     )
                 )
 
@@ -240,7 +249,57 @@ class Walker:
         for leg in self.legs:
             await leg.move(90, 90, 90)
         print("To zero done")
+    
+    def apply_calibration(self, values: dict[str, dict[str, int]]):
+        for i, leg in enumerate(self.legs, start=1):
+            for joint_name in ['hip', 'knee', 'ankle']:
+                joint = getattr(leg, joint_name)
+                joint.apply_calibration(values[f"leg{i}"][joint_name])
+        print("Calibration applied")
+        
+    def find_hard_limits(walker):
+        import json
+        hard_limits_config = {}
+        for i, leg in enumerate(walker.legs):
+            for joint_name in ['hip', 'knee', 'ankle']:
+                print(f"Finding hard limits for leg {i} {joint_name}")
+                joint = getattr(leg, joint_name)
 
+                
+                print(f"Find max for leg {i} {joint_name}")
+                current_angle = 90
+                while True:
+                    try:
+                        current_angle = current_angle + 1
+                        joint.hard_move(current_angle)
+                        time.sleep(0.1)
+                    except (KeyboardInterrupt, ValueError):
+                        break
+                hard_limits_config[f"leg_{i}_{joint_name}_max"] = current_angle
+
+                print(f"Find min for leg {i} {joint_name}")
+                current_angle = 90
+                
+                while True:
+                    try:
+                        current_angle = current_angle - 1
+                        joint.hard_move(current_angle)
+                        time.sleep(0.1)
+                    except (KeyboardInterrupt, ValueError):
+                        break
+                hard_limits_config[f"leg_{i}_{joint_name}_min"] = current_angle
+                joint.hard_move(90)
+
+
+        print(json.dumps(hard_limits_config))
+
+    def apply_hard_limits(self, hard_limits_dict: dict[str,int]):
+        for i, leg in enumerate(self.legs, start=1):
+            for joint_name in ['hip', 'knee', 'ankle']:
+                joint = getattr(leg, joint_name)
+                joint.min_angle = hard_limits_dict[f"leg_{i}_{joint_name}_min"]
+                joint.max_angle = hard_limits_dict[f"leg_{i}_{joint_name}_max"]
+        print("Hard limits set")
 
 class Light:
     def __init__(self, pwm):
@@ -265,41 +324,7 @@ class Light:
             self.pwm.duty_cycle = int((i / 100) * 65535)
             time.sleep(step_delay)
 
-def find_hard_limits(walker: Walker):
-    import json
-    hard_limits_config = {}
-    for i, leg in enumerate(walker.legs):
-        for joint_name in ['hip', 'knee', 'ankle']:
-            print(f"Finding hard limits for leg {i} {joint_name}")
-            joint = getattr(leg, joint_name)
 
-            
-            print(f"Find max for leg {i} {joint_name}")
-            current_angle = 90
-            while True:
-                try:
-                    current_angle = current_angle + 1
-                    joint.hard_move(current_angle)
-                    time.sleep(0.1)
-                except (KeyboardInterrupt, ValueError):
-                    break
-            hard_limits_config[f"leg_{i}_{joint_name}_max"] = current_angle
-
-            print(f"Find min for leg {i} {joint_name}")
-            current_angle = 90
-            
-            while True:
-                try:
-                    current_angle = current_angle - 1
-                    joint.hard_move(current_angle)
-                    time.sleep(0.1)
-                except (KeyboardInterrupt, ValueError):
-                    break
-            hard_limits_config[f"leg_{i}_{joint_name}_min"] = current_angle
-            joint.hard_move(90)
-
-
-    print(json.dumps(hard_limits_config))
     
 
 

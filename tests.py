@@ -1,7 +1,7 @@
-from hardware import light, walker
 import time
 
 def light_test():
+    from hardware import light
     print("Light test")
 
     for _ in range(3):
@@ -11,12 +11,13 @@ def light_test():
     print("Light test done")
 
 
-def leg_test():
+async def leg_test():
+    from hardware import walker
     print("Leg test")
     for leg in walker.legs:
         for joint in [leg.hip, leg.knee, leg.ankle]:
-            for angle in [80, 100, 90]:
-                joint.move(angle)
-                time.sleep(0.2)
+            for angle in [70, 110, 90]:
+                await joint.move(angle)
+                time.sleep(0.1)
 
     print("Leg test done")

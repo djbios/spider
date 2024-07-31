@@ -3,6 +3,21 @@ from utils import Battery, Joint, Leg, Light, Walker, Accelerometr, Storage
 import pwmio
 import busio
 from adafruit_pca9685 import PCA9685
+import os
+
+import adafruit_connection_manager
+import wifi
+
+import adafruit_requests
+from routines import RoutinesRegistry, BaseRoutine
+import circuitpython_schedule as schedule
+
+from adafruit_httpserver import (
+    Server,
+    REQUEST_HANDLED_RESPONSE_SENT,
+    Request,
+    FileResponse,
+)
 
 
 DEFAULT_SPEED = 1000
@@ -58,12 +73,15 @@ WALKER_CALIBRATED_HARD_LIMITS = {
     "leg_1_ankle_max": 186,
 }
 
-
+# I2C
 i2c = busio.I2C(pins.I2C_SCL, pins.I2C_SDA)
+
+# PCA 9685 servo controller
 pca = PCA9685(i2c)
 pca.frequency = 50
 pca.reference_clock_speed = 2.82337e07
 
+# Walker
 leg1_ankle_ch = pca.channels[9]
 leg1_knee_ch = pca.channels[10]
 leg1_hip_ch = pca.channels[11]
@@ -105,10 +123,67 @@ walker = Walker(
 walker.apply_calibration(WALKER_CALIBRATION_ANGLES)
 walker.apply_hard_limits(WALKER_CALIBRATED_HARD_LIMITS)
 
+# Light
 light = Light(pwmio.PWMOut(pins.LED_STRIP))
 
+# Battery
 battery = Battery(pins.BATTERY_ADC)
 
+# Accelerometer
 accelerometer = Accelerometr(i2c)
 
+# Storage
 storage = Storage()
+
+# Wifi
+ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+
+pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
+requests = adafruit_requests.Session(pool, ssl_context)
+rssi = wifi.radio.ap_info.rssi
+
+try:
+    # Connect to the Wi-Fi network
+    wifi.radio.connect(ssid, password)
+except OSError as e:
+    print(f"❌ OSError: {e}")
+print(f"✅ Wifi! IP: {wifi.radio.ipv4_address}")
+
+# Http server
+server = Server(pool, "/static", debug=True)
+
+
+@server.route("/")
+def base(request: Request):
+    """
+    Serve the default index.html file.
+    """
+    return FileResponse(request, "index.html")
+
+
+@RoutinesRegistry.register()
+class HttpServerRoutine(BaseRoutine):
+    def __init__(self) -> None:
+        server.start(str(wifi.radio.ipv4_address))
+        print("HttpServerRoutine initialized")
+        super().__init__()
+
+    async def tick(self):
+        try:
+            server.poll()
+        except OSError as error:
+            print(error)
+
+
+# Scheduler
+@RoutinesRegistry.register()
+class SchedulerRoutine(BaseRoutine):
+    def __init__(self) -> None:
+        schedule.every(30).seconds.do(battery.print_battery)
+        print("SchedulerRoutine initialized")
+        super().__init__()
+
+    async def tick(self):
+        schedule.run_pending()

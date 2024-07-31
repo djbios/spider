@@ -3,4 +3,3 @@ deploy.sh
 .vscode/
 .git/
 extra_libs/
-web_ui/

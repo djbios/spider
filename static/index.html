@@ -5,8 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spider Robot Control</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         body {
@@ -74,19 +77,20 @@
     <div class="container my-5">
         <h1 class="text-center mb-4">Spider Robot Control</h1>
         <div class="row mb-3">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label for="cameraIp" class="form-label">Camera IP Address</label>
-                <input type="text" class="form-control" id="cameraIp" placeholder="Enter camera IP address" value="192.168.178.125">
+                <input type="text" class="form-control" id="cameraIp" placeholder="Enter camera IP address"
+                    value="192.168.178.125">
             </div>
         </div>
         <div class="row">
-            <div class="col-md-6 mb-4">
+            <div class="col-md-4 mb-4">
                 <div class="img-container" style="transform: rotate(90deg); max-width: 70%;">
                     <!-- TODO hardcoded IP -->
-                    <img id="camera-stream" src="http://192.168.178.125/stream" alt="Camera Stream"> 
+                    <img id="camera-stream" src="http://192.168.178.125/stream" alt="Camera Stream">
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="row control-row text-center mb-4">
                     <div class="col-12">
                         <button class="btn btn-primary control-button" id="move-forward">↑</button>
@@ -109,17 +113,29 @@
                     </div>
                 </div>
                 <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="lightSwitch" class="settings-label">Light</label>
-                        <select class="form-select" id="lightSwitch">
-                            <option value="on">On</option>
-                            <option value="off">Off</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="speedControl" class="settings-label">Speed</label>
-                        <input type="range" class="form-range slider" id="speedControl" min="1" max="10">
-                    </div>
+                    <table id="stats-table" class="table">
+                        <tr>
+                            <td>Battery percentage</td>
+                            <td id="battery_percentage">0%</td>
+                        </tr>
+                        <tr>
+                            <td>Battery voltage</td>
+                            <td id="battery_voltage">0V</td>
+                        </tr>
+                        <tr>
+                            <td>Accelerometer XYZ</td>
+                            <td id="accelerometer_xyz">0, 0, 0</td>
+                        </tr>
+                        <tr>
+                            <td>Accelerometer angles</td>
+                            <td id="accelerometer_angles">0, 0, 0</td>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="row">
+                    <button class="command-button btn btn-primary" id="light-on">Light on</button>
+                    <button class="command-button btn btn-primary" id="light-off">Light off</button>
                 </div>
             </div>
         </div>
@@ -132,29 +148,54 @@
                 $('#camera-stream').attr('src', `http://${camIp}/stream`);
             });
 
-            $('.control-button').on('click', function () {
+            // $('.control-button').on('click', function () {
+            //     const action = $(this).attr('id');
+            //     const apiIp = $('#apiIp').val();
+            //     $.post(`http://${apiIp}/control`, { action: action }, function (data) {
+            //         console.log(data);
+            //     });
+            // });
+
+            // $('#lightSwitch').on('change', function () {
+            //     const lightState = $(this).val();
+            //     const apiIp = $('#apiIp').val();
+            //     $.post(`http://${apiIp}/control`, { action: 'light', state: lightState }, function (data) {
+            //         console.log(data);
+            //     });
+            // });
+
+            // $('#speedControl').on('input', function () {
+            //     const speed = $(this).val();
+            //     const apiIp = $('#apiIp').val();
+            //     $.post(`http://${apiIp}/control`, { action: 'speed', value: speed }, function (data) {
+            //         console.log(data);
+            //     });
+            // });
+
+            $('.command-button').on('click', function () {
                 const action = $(this).attr('id');
                 const apiIp = $('#apiIp').val();
-                $.post(`http://${apiIp}/control`, { action: action }, function (data) {
-                    console.log(data);
+                $.ajax({
+                    url: `/api/command`,
+                    type: 'POST',
+                    data: JSON.stringify({ action: action }),
+                    contentType : 'application/json',
+                    success: function (data) {
+                        console.log(data);
+                    }
                 });
+                
             });
-
-            $('#lightSwitch').on('change', function () {
-                const lightState = $(this).val();
-                const apiIp = $('#apiIp').val();
-                $.post(`http://${apiIp}/control`, { action: 'light', state: lightState }, function (data) {
-                    console.log(data);
+            // Stats
+            var intervalId = window.setInterval(function(){
+                $.get(`/api/stats`, function (data) {
+                    // TODO dynamic
+                    $('#battery_percentage').text(data.battery_percentage + '%');
+                    $('#battery_voltage').text(data.battery_voltage + 'V');
+                    $('#accelerometer_xyz').text(data.accelerometer_xyz.join(', '));
+                    $('#accelerometer_angles').text(data.accelerometer_angles.join(', '));
                 });
-            });
-
-            $('#speedControl').on('input', function () {
-                const speed = $(this).val();
-                const apiIp = $('#apiIp').val();
-                $.post(`http://${apiIp}/control`, { action: 'speed', value: speed }, function (data) {
-                    console.log(data);
-                });
-            });
+            }, 2000);
         });
     </script>
 </body>

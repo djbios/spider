@@ -14,8 +14,8 @@ async def initial_actions():
     accelerometer.print_xyz()
     light_test()
     storage["last_boot"] = time.time()
-    await leg_test()
-    await walker.wiggle(10)
+    #await leg_test()
+    #await walker.wiggle(10)
     await walker.to_zero()
 
 

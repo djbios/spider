@@ -247,7 +247,7 @@
                 $.get(`/api/stats`, function (data) {
                     updateStatsTable(data);
                 });
-            }, 2000);
+            }, 10000);
         });
 
         // Fetch logs and update the logs section
@@ -262,7 +262,7 @@
         }
 
         // Set interval to fetch new logs every 2 seconds
-        var logsIntervalId = window.setInterval(fetchLogs, 2000);
+        var logsIntervalId = window.setInterval(fetchLogs, 10000);
     </script>
 </body>
 

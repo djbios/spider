@@ -28,6 +28,7 @@ async def main():
 
 try:
     asyncio.run(main())
-except KeyboardInterrupt:
-    log("Interrupted")
+except Exception as e:
+    print(e)
     walker.deactivate()
+    raise e

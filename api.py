@@ -55,7 +55,7 @@ def command(request: Request):
 
 @server.route("/api/logs", GET)
 def logs(request: Request):
-    logs = get_unsent_loglines()
+    logs = get_unsent_loglines('http')
     return JSONResponse(request, logs)
 
 

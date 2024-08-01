@@ -1,5 +1,5 @@
 import pins
-from utils import Battery, Joint, Leg, Light, Walker, Accelerometr
+from utils import Battery, Joint, Leg, Light, Walker, Accelerometr, Display
 import pwmio
 import busio
 from adafruit_pca9685 import PCA9685
@@ -11,6 +11,8 @@ import wifi
 import adafruit_requests
 from routines import RoutinesRegistry, BaseRoutine
 import circuitpython_schedule as schedule
+from logging import log, get_unsent_loglines
+from collections import deque
 
 from adafruit_httpserver import (
     Server,
@@ -133,7 +135,6 @@ battery = Battery(pins.BATTERY_ADC)
 accelerometer = Accelerometr(i2c)
 
 
-
 # Wifi
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
@@ -186,3 +187,21 @@ class SchedulerRoutine(BaseRoutine):
 
     async def tick(self):
         schedule.run_pending()
+
+
+# Display
+display = Display(128, 32, i2c)
+
+
+@RoutinesRegistry.register()
+class DisplayRoutine(BaseRoutine):
+    def __init__(self) -> None:
+        self.display = display
+        self.logs_deque = deque([], display.MAX_LINES)
+        super().__init__()
+
+    async def tick(self):
+        if self.display.logging:
+            new_lines = get_unsent_loglines("display", count=4)
+            self.logs_deque.extend(new_lines)
+            self.display.writelines(list(self.logs_deque))

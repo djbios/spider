@@ -9,6 +9,7 @@ import adafruit_adxl34x
 import math
 from flash_storage import storage
 from logging import log
+import adafruit_ssd1306
 
 VOLTAGE_MULTIPLIER = 0.0002985503
 BATTERY_MAX_VOLTAGE = 12.6
@@ -90,12 +91,10 @@ class SmoothServo:
         self.speed = 0  # Initial speed
         self.max_speed = 1
         self.acceleration = 1
-        self.in_motion = False
         self.last_update_time = time.monotonic()
         self.mid_angle = 90
-
+        self.current_movement = None
         self.set_servo_angle(self.current_angle)
-        
 
     def set_speed(self, max_speed):
         """
@@ -133,19 +132,23 @@ class SmoothServo:
             self.speed = max(-self.max_speed, min(self.max_speed, self.speed))
 
             step = self.speed * delta_time
-            # if abs(step) > abs(err):
-            #     next_angle = self.target_angle
-            # else:
-            next_angle = max(
-                min(self.current_angle + step, self.max_angle), self.min_angle
-            )
+            next_angle = self.current_angle + step
+
+            # Check that we not overshoot the target
+            movement_from, movement_to = self.current_movement
+            if movement_from < movement_to:
+                if next_angle > movement_to:
+                    next_angle = movement_to
+            else:
+                if next_angle < movement_to:
+                    next_angle = movement_to
 
             assert (
                 self.min_angle <= next_angle <= self.max_angle
             ), f"Angle out of bounds: {next_angle}, {step}, {err}, {self.target_angle}, {self.current_angle}"
 
             self.current_angle = next_angle
-            self.set_servo_angle(self.current_angle)
+            self.set_servo_angle(next_angle)
         else:
             self.stop()
 
@@ -158,11 +161,11 @@ class SmoothServo:
             return 0
 
     def start(self):
-        self.in_motion = True
+        self.current_movement = (self.current_angle, self.target_angle)
         self.last_update_time = time.monotonic()
 
     def stop(self):
-        self.in_motion = False
+        self.current_movement = None
 
     def deactivate(self):
         self.stop()
@@ -178,7 +181,8 @@ class SmoothServo:
     def apply_calibration(self, mid_angle):
         self.mid_angle = mid_angle
         self.set_servo_angle(self.current_angle)
-        
+
+
 class Joint(SmoothServo):
     def __init__(self, channel: PWMChannel, speed, acceleration):
         super().__init__(channel)
@@ -190,7 +194,7 @@ class Joint(SmoothServo):
     async def move(self, angle):
         self.set_target(angle)
         self.start()
-        while self.in_motion:
+        while self.current_movement:
             await asyncio.sleep(0.01)
 
 
@@ -232,9 +236,9 @@ class Walker:
             for leg in self.legs:
                 tasks.append(
                     leg.move(
-                        random.randint(80, 110),
-                        random.randint(50, 140),
-                        random.randint(50, 150),
+                        random.randint(80, 100),
+                        random.randint(80, 100),
+                        random.randint(80, 100),
                     )
                 )
 
@@ -253,23 +257,23 @@ class Walker:
         for leg in self.legs:
             await leg.move(90, 90, 90)
         log("To zero done")
-    
+
     def apply_calibration(self, values: dict[str, dict[str, int]]):
         for i, leg in enumerate(self.legs, start=1):
-            for joint_name in ['hip', 'knee', 'ankle']:
+            for joint_name in ["hip", "knee", "ankle"]:
                 joint = getattr(leg, joint_name)
                 joint.apply_calibration(values[f"leg{i}"][joint_name])
         log("Calibration applied")
-        
+
     def find_hard_limits(walker):
         import json
+
         hard_limits_config = {}
         for i, leg in enumerate(walker.legs):
-            for joint_name in ['hip', 'knee', 'ankle']:
+            for joint_name in ["hip", "knee", "ankle"]:
                 log(f"Finding hard limits for leg {i} {joint_name}")
                 joint = getattr(leg, joint_name)
 
-                
                 log(f"Find max for leg {i} {joint_name}")
                 current_angle = 90
                 while True:
@@ -283,7 +287,7 @@ class Walker:
 
                 log(f"Find min for leg {i} {joint_name}")
                 current_angle = 90
-                
+
                 while True:
                     try:
                         current_angle = current_angle - 1
@@ -294,19 +298,20 @@ class Walker:
                 hard_limits_config[f"leg_{i}_{joint_name}_min"] = current_angle
                 joint.hard_move(90)
 
-
         log(json.dumps(hard_limits_config))
 
-    def apply_hard_limits(self, hard_limits_dict: dict[str,int]):
+    def apply_hard_limits(self, hard_limits_dict: dict[str, int]):
         for i, leg in enumerate(self.legs):
-            for joint_name in ['hip', 'knee', 'ankle']:
+            for joint_name in ["hip", "knee", "ankle"]:
                 joint = getattr(leg, joint_name)
                 joint.min_angle = hard_limits_dict[f"leg_{i}_{joint_name}_min"]
                 joint.max_angle = hard_limits_dict[f"leg_{i}_{joint_name}_max"]
         log("Hard limits set")
 
+
 class Light:
     PWM_MAX = 65535
+
     def __init__(self, pwm):
         self.pwm = pwm
         log("Light initialized")
@@ -334,13 +339,12 @@ class Light:
         :param brightness: Brightness in percentage 0-100
         """
         self.pwm.duty_cycle = int((brightness / 100) * self.PWM_MAX)
-    
+
     def get_brightness(self):
         return int((self.pwm.duty_cycle / self.PWM_MAX) * 100)
-        
+
 
 class Accelerometr(adafruit_adxl34x.ADXL345):
-
     def __init__(self, i2c):
         super().__init__(i2c)
         self.zero_x = 0
@@ -356,7 +360,7 @@ class Accelerometr(adafruit_adxl34x.ADXL345):
         y -= self.zero_y
         z -= self.zero_z
         return x, y, z
-    
+
     def log_xyz(self):
         x, y, z = self.xyz
         log(f"x: {x}, y: {y}, z: {z}")
@@ -369,14 +373,14 @@ class Accelerometr(adafruit_adxl34x.ADXL345):
     @property
     def angles(self):
         x, y, z = self.xyz
-        pitch = -1 * math.atan2(x, math.sqrt(y ** 2 + z ** 2)) * 180 / math.pi
+        pitch = -1 * math.atan2(x, math.sqrt(y**2 + z**2)) * 180 / math.pi
         roll = math.atan2(y, z) * 180 / math.pi
         return pitch, roll
 
     def log_angles(self):
         pitch, roll = self.angles
         log(f"Pitch: {pitch}, Roll: {roll}")
-    
+
     def log_angles_cycle(self, period=0.5):
         while True:
             self.log_angles()
@@ -387,7 +391,9 @@ class Accelerometr(adafruit_adxl34x.ADXL345):
         initial_x, initial_y, initial_z = self.acceleration
         self.zero_x = initial_x
         self.zero_y = initial_y
-        self.zero_z = initial_z - 9.81  # Assuming the z-axis reads gravitational acceleration
+        self.zero_z = (
+            initial_z - 9.81
+        )  # Assuming the z-axis reads gravitational acceleration
         self.store_calibration()
         log("Calibration complete.")
         log(f"Offsets - X: {self.zero_x}, Y: {self.zero_y}, Z: {self.zero_z}")
@@ -400,7 +406,7 @@ class Accelerometr(adafruit_adxl34x.ADXL345):
             "zero_z": self.zero_z,
         }
         log("Calibration stored.")
-    
+
     def load_calibration(self):
         calibration = storage.get("accelerometer")
         if calibration:
@@ -410,6 +416,34 @@ class Accelerometr(adafruit_adxl34x.ADXL345):
             log("Calibration loaded.")
 
 
+class Display(adafruit_ssd1306.SSD1306_I2C):
+    MAX_LINES = 3
+    MAX_LINE_LENGTH = 21
+
+    def __init__(self, width, height, i2c):
+        super().__init__(width, height, i2c)
+        self.writelines(["", "Initializing..."])
+        log("Display initialized")
+        self.animation = None
+        self.logging = True
+
+    def set_animation(self, animation):
+        self.animation = animation
+
+    def writelines(self, lines, cut=True):
+        if cut:
+            lines = lines[: self.MAX_LINES]
+            for l in lines:
+                if len(l) > self.MAX_LINE_LENGTH:
+                    l = l[: self.MAX_LINE_LENGTH]
+        else:
+            assert len(lines) <= 8, "Too many lines"
+            assert all(len(line) <= 21 for line in lines), "Line too long"
+
+        self.fill(0)
+        for i, line in enumerate(lines):
+            self.text(line, 0, i * 10, 1)
+        self.show()
 
 
 async def run_callable_async_or_not(callable, *args, **kwargs):

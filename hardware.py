@@ -1,5 +1,5 @@
 import pins
-from utils import Battery, Joint, Leg, Light, Walker, Accelerometr, Storage
+from utils import Battery, Joint, Leg, Light, Walker, Accelerometr
 import pwmio
 import busio
 from adafruit_pca9685 import PCA9685
@@ -18,7 +18,7 @@ from adafruit_httpserver import (
     Request,
     FileResponse,
 )
-
+from logging import log
 
 DEFAULT_SPEED = 1000
 DEFAULT_ACCELERATION = 1000
@@ -132,8 +132,7 @@ battery = Battery(pins.BATTERY_ADC)
 # Accelerometer
 accelerometer = Accelerometr(i2c)
 
-# Storage
-storage = Storage()
+
 
 # Wifi
 ssid = os.getenv("CIRCUITPY_WIFI_SSID")
@@ -148,8 +147,8 @@ try:
     # Connect to the Wi-Fi network
     wifi.radio.connect(ssid, password)
 except OSError as e:
-    print(f"❌ OSError: {e}")
-print(f"✅ Wifi! IP: {wifi.radio.ipv4_address}")
+    log(f"❌ OSError: {e}")
+log(f"✅ Wifi! IP: {wifi.radio.ipv4_address}")
 
 # Http server
 server = Server(pool, "/static", debug=True)
@@ -167,22 +166,22 @@ def base(request: Request):
 class HttpServerRoutine(BaseRoutine):
     def __init__(self) -> None:
         server.start(str(wifi.radio.ipv4_address))
-        print("HttpServerRoutine initialized")
+        log("HttpServerRoutine initialized")
         super().__init__()
 
     async def tick(self):
         try:
             server.poll()
         except OSError as error:
-            print(error)
+            log(error)
 
 
 # Scheduler
 @RoutinesRegistry.register()
 class SchedulerRoutine(BaseRoutine):
     def __init__(self) -> None:
-        schedule.every(30).seconds.do(battery.print_battery)
-        print("SchedulerRoutine initialized")
+        schedule.every(30).seconds.do(battery.log_battery)
+        log("SchedulerRoutine initialized")
         super().__init__()
 
     async def tick(self):

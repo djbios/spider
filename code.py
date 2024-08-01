@@ -1,8 +1,9 @@
 import asyncio
-from hardware import battery, accelerometer, walker, storage
+from hardware import battery, accelerometer, walker
+from flash_storage import storage
 from routines import RoutinesRegistry
 import time
-from tests import light_test, leg_test
+from logging import log
 
 # # Discovery
 # from serial import * # noqa
@@ -10,12 +11,9 @@ from api import *  # noqa
 
 
 async def initial_actions():
-    battery.print_battery()
-    accelerometer.print_xyz()
-    light_test()
+    battery.log_battery()
+    accelerometer.log_xyz()
     storage["last_boot"] = time.time()
-    #await leg_test()
-    #await walker.wiggle(10)
     await walker.to_zero()
 
 
@@ -31,5 +29,5 @@ async def main():
 try:
     asyncio.run(main())
 except KeyboardInterrupt:
-    print("Interrupted")
+    log("Interrupted")
     walker.deactivate()

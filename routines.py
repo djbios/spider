@@ -1,5 +1,5 @@
 import asyncio
-
+from logging import log
 
 class BaseRoutine:
     async def tick(self):
@@ -33,7 +33,7 @@ class RoutinesRegistry:
                     await routine.tick()
                     await asyncio.sleep(0.00001)  # TODO get rid of it
             routines_tasks.append(run_routine(routine))
-        print(f"Routines initialised: {cls.routines_instances}")
+        log(f"Routines initialised: {cls.routines_instances}")
 
         
         cls.routines_coroutine = asyncio.gather(*routines_tasks)

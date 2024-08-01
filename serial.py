@@ -1,7 +1,7 @@
 import busio
 import pins
 from routines import BaseRoutine, RoutinesRegistry
-
+from logging import log
 
 @RoutinesRegistry.register()
 class UARTRoutine(BaseRoutine):
@@ -14,4 +14,4 @@ class UARTRoutine(BaseRoutine):
         data = self.uart.read()
         if data is not None:
             data_str = ''.join([chr(b) for b in data])
-            print(data_str, end='')
+            log(data_str, end='')

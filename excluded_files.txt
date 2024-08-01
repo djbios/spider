@@ -5,3 +5,4 @@ deploy.sh
 extra_libs/
 .gitignore
 image.png
+data.json

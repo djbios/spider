@@ -1,9 +1,11 @@
+import json
 from hardware import server, battery, accelerometer, light, walker
 from adafruit_httpserver import Request, JSONResponse, POST, GET
 from tests import leg_test
 from routines import RoutinesRegistry, BaseRoutine
 from utils import run_callable_async_or_not
-
+from flash_storage import storage
+from logging import log, get_unsent_loglines
 
 @RoutinesRegistry.register()
 class HttpCommandsRoutine(BaseRoutine):
@@ -18,7 +20,7 @@ class HttpCommandsRoutine(BaseRoutine):
 
 
     def add_task(self, task, task_kwargs):
-        print(f"Adding task: {task}")
+        log(f"Adding task: {task}")
         self.get_instance().tasks.append((task, task_kwargs))
 
 
@@ -30,6 +32,7 @@ def stats(request: Request):
         "accelerometer_xyz": accelerometer.xyz,
         "accelerometr_angles": accelerometer.angles,
         "light_brightness": light.get_brightness(),
+        "storage_content": json.dumps(storage._data),
     }
     return JSONResponse(request, data)
 
@@ -43,12 +46,17 @@ def command(request: Request):
         action_function = commands[action]
         HttpCommandsRoutine.get_instance().add_task(action_function, kwargs)
     else:
-        print(f"❌ Command not found: {action}")
+        log(f"❌ Command not found: {action}")
 
     data = {
         "message": "Command received",
     }
     return JSONResponse(request, data)
+
+@server.route("/api/logs", GET)
+def logs(request: Request):
+    logs = get_unsent_loglines()
+    return JSONResponse(request, json.dumps(logs))
 
 
 commands = {
@@ -56,4 +64,5 @@ commands = {
     "wiggle": walker.wiggle,
     "leg-test": leg_test,
     "to-zero": walker.to_zero,
+    "calibrate-zero": accelerometer.calibrate_zero,
 }

@@ -7,8 +7,8 @@ import asyncio
 from adafruit_pca9685 import PWMChannel
 import adafruit_adxl34x
 import math
-import storage
-import json
+from flash_storage import storage
+from logging import log
 
 VOLTAGE_MULTIPLIER = 0.0002985503
 BATTERY_MAX_VOLTAGE = 12.6
@@ -38,9 +38,9 @@ def interpolate_color(color1, color2, factor):
 class Battery:
     def __init__(self, battery_pin):
         self.adc = analogio.AnalogIn(battery_pin)
-        print("Battery initialized")
+        log("Battery initialized")
 
-    def print_battery(self):
+    def log_battery(self):
         voltage = self.get_battery_voltage()
         percentage = self.get_battery_percentage()
 
@@ -48,7 +48,7 @@ class Battery:
         filled_length = int(bar_length * percentage // 100)
         bar = "█" * filled_length + "-" * (bar_length - filled_length)
 
-        print(f"\rBattery voltage: {voltage:.2f}V |{bar}| {percentage}%")
+        log(f"\rBattery voltage: {voltage:.2f}V |{bar}| {percentage}%")
 
     def get_battery_voltage(self) -> float:
         # Convert the analog reading to voltage
@@ -185,7 +185,7 @@ class Joint(SmoothServo):
         JointRoutine.joints.append(self)
         self.set_speed(speed)
         self.set_acceleration(acceleration)
-        print("Joint initialized")
+        log("Joint initialized")
 
     async def move(self, angle):
         self.set_target(angle)
@@ -199,7 +199,7 @@ class Leg:
         self.hip = hip
         self.knee = knee
         self.ankle = ankle
-        print("Leg initialized")
+        log("Leg initialized")
 
     async def move(
         self,
@@ -222,10 +222,10 @@ class Walker:
         self.leg3 = leg3
         self.leg4 = leg4
         self.legs = [leg1, leg2, leg3, leg4]
-        print("Walker initialized")
+        log("Walker initialized")
 
     async def wiggle(self, movements=10):
-        print("Wiggle")
+        log("Wiggle")
 
         for _ in range(movements):
             tasks = []
@@ -246,31 +246,31 @@ class Walker:
                 joint.deactivate()
 
         self.to_zero()
-        print("Wiggle done")
+        log("Wiggle done")
 
     async def to_zero(self):
-        print("To zero")
+        log("To zero")
         for leg in self.legs:
             await leg.move(90, 90, 90)
-        print("To zero done")
+        log("To zero done")
     
     def apply_calibration(self, values: dict[str, dict[str, int]]):
         for i, leg in enumerate(self.legs, start=1):
             for joint_name in ['hip', 'knee', 'ankle']:
                 joint = getattr(leg, joint_name)
                 joint.apply_calibration(values[f"leg{i}"][joint_name])
-        print("Calibration applied")
+        log("Calibration applied")
         
     def find_hard_limits(walker):
         import json
         hard_limits_config = {}
         for i, leg in enumerate(walker.legs):
             for joint_name in ['hip', 'knee', 'ankle']:
-                print(f"Finding hard limits for leg {i} {joint_name}")
+                log(f"Finding hard limits for leg {i} {joint_name}")
                 joint = getattr(leg, joint_name)
 
                 
-                print(f"Find max for leg {i} {joint_name}")
+                log(f"Find max for leg {i} {joint_name}")
                 current_angle = 90
                 while True:
                     try:
@@ -281,7 +281,7 @@ class Walker:
                         break
                 hard_limits_config[f"leg_{i}_{joint_name}_max"] = current_angle
 
-                print(f"Find min for leg {i} {joint_name}")
+                log(f"Find min for leg {i} {joint_name}")
                 current_angle = 90
                 
                 while True:
@@ -295,7 +295,7 @@ class Walker:
                 joint.hard_move(90)
 
 
-        print(json.dumps(hard_limits_config))
+        log(json.dumps(hard_limits_config))
 
     def apply_hard_limits(self, hard_limits_dict: dict[str,int]):
         for i, leg in enumerate(self.legs):
@@ -303,13 +303,13 @@ class Walker:
                 joint = getattr(leg, joint_name)
                 joint.min_angle = hard_limits_dict[f"leg_{i}_{joint_name}_min"]
                 joint.max_angle = hard_limits_dict[f"leg_{i}_{joint_name}_max"]
-        print("Hard limits set")
+        log("Hard limits set")
 
 class Light:
     PWM_MAX = 65535
     def __init__(self, pwm):
         self.pwm = pwm
-        print("Light initialized")
+        log("Light initialized")
 
     def turn_on(self):
         self.pwm.duty_cycle = self.PWM_MAX  # TODO refactor to use a constant
@@ -346,8 +346,8 @@ class Accelerometr(adafruit_adxl34x.ADXL345):
         self.zero_x = 0
         self.zero_y = 0
         self.zero_z = 0
-
-        print("Accelerometer initialized")
+        self.load_calibration()
+        log("Accelerometer initialized")
 
     @property
     def xyz(self) -> tuple[float, float, float]:
@@ -357,13 +357,13 @@ class Accelerometr(adafruit_adxl34x.ADXL345):
         z -= self.zero_z
         return x, y, z
     
-    def print_xyz(self):
+    def log_xyz(self):
         x, y, z = self.xyz
-        print(f"x: {x}, y: {y}, z: {z}")
+        log(f"x: {x}, y: {y}, z: {z}")
 
-    def print_xyz_cycle(self, period=0.5):
+    def log_xyz_cycle(self, period=0.5):
         while True:
-            self.print_xyz()
+            self.log_xyz()
             time.sleep(period)
 
     @property
@@ -373,89 +373,43 @@ class Accelerometr(adafruit_adxl34x.ADXL345):
         roll = math.atan2(y, z) * 180 / math.pi
         return pitch, roll
 
-    def print_angles(self):
+    def log_angles(self):
         pitch, roll = self.angles
-        print(f"Pitch: {pitch}, Roll: {roll}")
+        log(f"Pitch: {pitch}, Roll: {roll}")
     
-    def print_angles_cycle(self, period=0.5):
+    def log_angles_cycle(self, period=0.5):
         while True:
-            self.print_angles()
+            self.log_angles()
             time.sleep(period)
 
     def calibrate_zero(self):
-        print("Put the robot on a flat surface.")
-        input("Press enter to calibrate...")
-        
+        log("Calibrating zero...")
         initial_x, initial_y, initial_z = self.acceleration
         self.zero_x = initial_x
         self.zero_y = initial_y
         self.zero_z = initial_z - 9.81  # Assuming the z-axis reads gravitational acceleration
+        self.store_calibration()
+        log("Calibration complete.")
+        log(f"Offsets - X: {self.zero_x}, Y: {self.zero_y}, Z: {self.zero_z}")
+        log(f"Values after calibration: {self.xyz}")
 
-        print("Calibration complete.")
-        print(f"Offsets - X: {self.zero_x}, Y: {self.zero_y}, Z: {self.zero_z}")
-        print(f"Values after calibration: {self.xyz}")
+    def store_calibration(self):
+        storage["accelerometer"] = {
+            "zero_x": self.zero_x,
+            "zero_y": self.zero_y,
+            "zero_z": self.zero_z,
+        }
+        log("Calibration stored.")
+    
+    def load_calibration(self):
+        calibration = storage.get("accelerometer")
+        if calibration:
+            self.zero_x = calibration["zero_x"]
+            self.zero_y = calibration["zero_y"]
+            self.zero_z = calibration["zero_z"]
+            log("Calibration loaded.")
 
 
-class Storage(dict):
-    def __init__(self, filename='data.json'):
-        self.filename = filename
-        self._data = {}
-        self._load_data()
-
-    def _load_data(self):
-        """Load data from the JSON file if it exists."""
-        try:
-            with open(self.filename, 'r') as f:
-                self._data = json.load(f)
-        except (OSError, ValueError, RuntimeError):
-            self._data = {}
-            print("Failed to load data from the JSON file.")
-
-    def _save_data(self):
-        """Save data to the JSON file."""
-        # Switch the filesystem to write mode
-        try:
-            storage.remount("/", readonly=False)
-        except RuntimeError:
-            print("Failed to remount the filesystem to write mode.")
-            return
-        with open(self.filename, 'w') as f:
-            json.dump(self._data, f)
-        # Switch the filesystem back to read-only mode
-        storage.remount("/", readonly=True)
-
-    def __getitem__(self, key):
-        return self._data[key]
-
-    def __setitem__(self, key, value):
-        self._data[key] = value
-        self._save_data()
-
-    def __delitem__(self, key):
-        del self._data[key]
-        self._save_data()
-
-    def __contains__(self, key):
-        return key in self._data
-
-    def __iter__(self):
-        return iter(self._data)
-
-    def keys(self):
-        return self._data.keys()
-
-    def values(self):
-        return self._data.values()
-
-    def items(self):
-        return self._data.items()
-
-    def get(self, key, default=None):
-        return self._data.get(key, default)
-
-    def clear(self):
-        self._data.clear()
-        self._save_data()
 
 
 async def run_callable_async_or_not(callable, *args, **kwargs):
@@ -467,6 +421,6 @@ async def run_callable_async_or_not(callable, *args, **kwargs):
             try:
                 callable(*args, **kwargs)
             except Exception as e:
-                print(f"❌ Command failed: {e}")
+                log(f"❌ Command failed: {e}")
         else:
-            print(f"❌ Command failed: {e}")
+            log(f"❌ Command failed: {e}")

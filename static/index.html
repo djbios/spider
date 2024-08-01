@@ -132,13 +132,15 @@
                 <div class="row">
                     <div class="command container" id="set-light-brightness">
                         <label for="brightness">Brightness %</label>
-                        <input type="range" id="brightness" min="0" max="100" value="0" class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                        <input type="range" id="brightness" min="0" max="100" value="0" class="w-100 input-type-int"
+                            oninput="this.nextElementSibling.value = this.value">
                         <output>0</output>
                         <button class="command-button btn btn-primary">Set light brightness</button>
                     </div>
                     <div class="command container" id="wiggle">
                         <label for="movements">Movements number</label>
-                        <input type="range" , id="movements" min="1" max="30" value="10" class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                        <input type="range" , id="movements" min="1" max="30" value="10" class="w-100 input-type-int"
+                            oninput="this.nextElementSibling.value = this.value">
                         <output>10</output>
                         <button class="command-button btn btn-primary">Wiggle</button>
                     </div>
@@ -148,6 +150,10 @@
                     <div class="command container" id="to-zero">
                         <button class="command-button btn btn-primary">To zero</button>
                     </div>
+                    <div class="command container" id="calibrate-zero">
+                        <button class="command-button btn btn-primary">Calibrate zero</button>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -223,7 +229,7 @@
                     }
                 }
             }
-
+            
             // Set interval to fetch and update stats every 2 seconds
             var intervalId = window.setInterval(function () {
                 $.get(`/api/stats`, function (data) {

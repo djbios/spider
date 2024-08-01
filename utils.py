@@ -224,7 +224,7 @@ class Walker:
         self.legs = [leg1, leg2, leg3, leg4]
         print("Walker initialized")
 
-    async def wiggle(self, movements):
+    async def wiggle(self, movements=10):
         print("Wiggle")
 
         for _ in range(movements):
@@ -306,12 +306,13 @@ class Walker:
         print("Hard limits set")
 
 class Light:
+    PWM_MAX = 65535
     def __init__(self, pwm):
         self.pwm = pwm
         print("Light initialized")
 
     def turn_on(self):
-        self.pwm.duty_cycle = 65535  # TODO refactor to use a constant
+        self.pwm.duty_cycle = self.PWM_MAX  # TODO refactor to use a constant
 
     def turn_off(self):
         self.pwm.duty_cycle = 0
@@ -319,14 +320,24 @@ class Light:
     def fade_in(self, fade_time=0.5):
         step_delay = fade_time / 100
         for i in range(100):
-            self.pwm.duty_cycle = int((i / 100) * 65535)
+            self.pwm.duty_cycle = int((i / 100) * self.PWM_MAX)
             time.sleep(step_delay)
 
     def fade_out(self, fade_time=0.5):
         step_delay = fade_time / 100
         for i in range(100, 0, -1):
-            self.pwm.duty_cycle = int((i / 100) * 65535)
+            self.pwm.duty_cycle = int((i / 100) * self.PWM_MAX)
             time.sleep(step_delay)
+
+    def set_brightness(self, brightness: int):
+        """
+        :param brightness: Brightness in percentage 0-100
+        """
+        self.pwm.duty_cycle = int((brightness / 100) * self.PWM_MAX)
+    
+    def get_brightness(self):
+        return int((self.pwm.duty_cycle / self.PWM_MAX) * 100)
+        
 
 class Accelerometr(adafruit_adxl34x.ADXL345):
 
@@ -445,3 +456,17 @@ class Storage(dict):
     def clear(self):
         self._data.clear()
         self._save_data()
+
+
+async def run_callable_async_or_not(callable, *args, **kwargs):
+    """Run a callable that may be async or not."""
+    try:
+        await callable(*args, **kwargs)
+    except AttributeError as e:  # The only way I found to identify its not async
+        if "__await__" in str(e):
+            try:
+                callable(*args, **kwargs)
+            except Exception as e:
+                print(f"❌ Command failed: {e}")
+        else:
+            print(f"❌ Command failed: {e}")

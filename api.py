@@ -1,5 +1,26 @@
-from hardware import server, battery, accelerometer, light
+from hardware import server, battery, accelerometer, light, walker
 from adafruit_httpserver import Request, JSONResponse, POST, GET
+from tests import leg_test
+from routines import RoutinesRegistry, BaseRoutine
+from utils import run_callable_async_or_not
+
+
+@RoutinesRegistry.register()
+class HttpCommandsRoutine(BaseRoutine):
+    def __init__(self) -> None:
+        super().__init__()
+        self.tasks = []
+
+    async def tick(self):
+        while len(self.tasks):
+            task, task_kwargs = self.tasks.pop(0)
+            await run_callable_async_or_not(task, **task_kwargs)
+
+
+    def add_task(self, task, task_kwargs):
+        print(f"Adding task: {task}")
+        self.get_instance().tasks.append((task, task_kwargs))
+
 
 @server.route("/api/stats", GET)
 def stats(request: Request):
@@ -8,25 +29,31 @@ def stats(request: Request):
         "battery_voltage": battery.get_battery_voltage(),
         "accelerometer_xyz": accelerometer.xyz,
         "accelerometr_angles": accelerometer.angles,
+        "light_brightness": light.get_brightness(),
     }
     return JSONResponse(request, data)
+
 
 @server.route("/api/command", POST)
 def command(request: Request):
     request_data = request.json()
     action = request_data.get("action")
     if action in commands:
-        commands[action]()
+        kwargs = request_data.get("params", {})
+        action_function = commands[action]
+        HttpCommandsRoutine.get_instance().add_task(action_function, kwargs)
     else:
         print(f"❌ Command not found: {action}")
 
-    print(request_data)
     data = {
         "message": "Command received",
     }
     return JSONResponse(request, data)
 
+
 commands = {
-    "light-on": light.turn_on,
-    "light-off": light.turn_off,
+    "set-light-brightness": light.set_brightness,
+    "wiggle": walker.wiggle,
+    "leg-test": leg_test,
+    "to-zero": walker.to_zero,
 }

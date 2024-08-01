@@ -5,7 +5,9 @@ class BaseRoutine:
     async def tick(self):
         """Routine main method, expected to be ran in a while true loop"""
         raise NotImplementedError
-
+    @classmethod
+    def get_instance(cls):
+        return RoutinesRegistry.get_instance(cls)
 
 class RoutinesRegistry:
     routines_classes: list[type[BaseRoutine]] = []
@@ -31,10 +33,18 @@ class RoutinesRegistry:
                     await routine.tick()
                     await asyncio.sleep(0.00001)  # TODO get rid of it
             routines_tasks.append(run_routine(routine))
+        print(f"Routines initialised: {cls.routines_instances}")
 
         
         cls.routines_coroutine = asyncio.gather(*routines_tasks)
 
+    @classmethod
+    def get_instance(cls, routine_class):
+        for routine in cls.routines_instances:
+            if isinstance(routine, routine_class):
+                return routine
+        raise ValueError(f"Routine {routine_class} not found")
+    
     # @classmethod
     # async def tick(cls):
     #     while True:

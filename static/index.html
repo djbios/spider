@@ -35,6 +35,14 @@
             margin: 10px;
         }
 
+        .command-button {
+            width: 100%;
+            height: 50px;
+            font-size: 16px;
+            border-radius: 8px;
+            margin: 10px;
+        }
+
         .control-row {
             display: flex;
             justify-content: center;
@@ -114,28 +122,32 @@
                 </div>
                 <div class="row mb-3">
                     <table id="stats-table" class="table">
-                        <tr>
-                            <td>Battery percentage</td>
-                            <td id="battery_percentage">0%</td>
-                        </tr>
-                        <tr>
-                            <td>Battery voltage</td>
-                            <td id="battery_voltage">0V</td>
-                        </tr>
-                        <tr>
-                            <td>Accelerometer XYZ</td>
-                            <td id="accelerometer_xyz">0, 0, 0</td>
-                        </tr>
-                        <tr>
-                            <td>Accelerometer angles</td>
-                            <td id="accelerometer_angles">0, 0, 0</td>
+                        <tbody id="stats-tbody">
+                            <!-- Dynamic rows will be inserted here -->
+                        </tbody>
                     </table>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="row">
-                    <button class="command-button btn btn-primary" id="light-on">Light on</button>
-                    <button class="command-button btn btn-primary" id="light-off">Light off</button>
+                    <div class="command container" id="set-light-brightness">
+                        <label for="brightness">Brightness %</label>
+                        <input type="range" id="brightness" min="0" max="100" value="0" class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                        <output>0</output>
+                        <button class="command-button btn btn-primary">Set light brightness</button>
+                    </div>
+                    <div class="command container" id="wiggle">
+                        <label for="movements">Movements number</label>
+                        <input type="range" , id="movements" min="1" max="30" value="10" class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                        <output>10</output>
+                        <button class="command-button btn btn-primary">Wiggle</button>
+                    </div>
+                    <div class="command container" id="leg-test">
+                        <button class="command-button btn btn-primary">Leg test</button>
+                    </div>
+                    <div class="command container" id="to-zero">
+                        <button class="command-button btn btn-primary">To zero</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -148,52 +160,74 @@
                 $('#camera-stream').attr('src', `http://${camIp}/stream`);
             });
 
-            // $('.control-button').on('click', function () {
-            //     const action = $(this).attr('id');
-            //     const apiIp = $('#apiIp').val();
-            //     $.post(`http://${apiIp}/control`, { action: action }, function (data) {
-            //         console.log(data);
-            //     });
-            // });
-
-            // $('#lightSwitch').on('change', function () {
-            //     const lightState = $(this).val();
-            //     const apiIp = $('#apiIp').val();
-            //     $.post(`http://${apiIp}/control`, { action: 'light', state: lightState }, function (data) {
-            //         console.log(data);
-            //     });
-            // });
-
-            // $('#speedControl').on('input', function () {
-            //     const speed = $(this).val();
-            //     const apiIp = $('#apiIp').val();
-            //     $.post(`http://${apiIp}/control`, { action: 'speed', value: speed }, function (data) {
-            //         console.log(data);
-            //     });
-            // });
-
             $('.command-button').on('click', function () {
-                const action = $(this).attr('id');
-                const apiIp = $('#apiIp').val();
+                const params = {};
+
+                // Find the specific command container for the clicked button
+                const commandContainer = $(this).closest('.command');
+                const action = commandContainer.attr('id');
+
+                // Collect all inputs within the specific command container
+                commandContainer.find('input').each(function () {
+                    const id = $(this).attr('id');
+                    let value = $(this).val();
+
+                    // Determine type based on class
+                    if ($(this).hasClass('input-type-int')) {
+                        value = parseInt(value, 10); // Convert to integer
+                    } else if ($(this).hasClass('input-type-float')) {
+                        value = parseFloat(value); // Convert to float
+                    } else if ($(this).hasClass('input-type-str')) {
+                        value = String(value); // Convert to string
+                    }
+
+                    params[id] = value; // Use id as the key and value as the value
+                });
+
+
+                // Add action to the params
+                const body = {
+                    action: action,
+                    params: params
+                };
+
                 $.ajax({
                     url: `/api/command`,
                     type: 'POST',
-                    data: JSON.stringify({ action: action }),
-                    contentType : 'application/json',
+                    data: JSON.stringify(body),
+                    contentType: 'application/json',
                     success: function (data) {
                         console.log(data);
                     }
                 });
-                
             });
-            // Stats
-            var intervalId = window.setInterval(function(){
+
+            // Function to update stats table dynamically
+            function updateStatsTable(data) {
+                var statsTbody = $('#stats-tbody');
+                statsTbody.empty(); // Clear existing rows
+
+                // Iterate over each stat in the data
+                for (var key in data) {
+                    if (data.hasOwnProperty(key)) {
+                        var value = data[key];
+                        // Convert value to a readable string if it's an array
+                        var valueText = Array.isArray(value) ? value.join(', ') : value;
+
+                        // Create a new row for the stat
+                        var newRow = `<tr>
+                            <td>${key.replace(/_/g, ' ')}</td>
+                            <td>${valueText}</td>
+                          </tr>`;
+                        statsTbody.append(newRow);
+                    }
+                }
+            }
+
+            // Set interval to fetch and update stats every 2 seconds
+            var intervalId = window.setInterval(function () {
                 $.get(`/api/stats`, function (data) {
-                    // TODO dynamic
-                    $('#battery_percentage').text(data.battery_percentage + '%');
-                    $('#battery_voltage').text(data.battery_voltage + 'V');
-                    $('#accelerometer_xyz').text(data.accelerometer_xyz.join(', '));
-                    $('#accelerometer_angles').text(data.accelerometer_angles.join(', '));
+                    updateStatsTable(data);
                 });
             }, 2000);
         });

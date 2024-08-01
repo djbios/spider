@@ -203,5 +203,6 @@ class DisplayRoutine(BaseRoutine):
     async def tick(self):
         if self.display.logging:
             new_lines = get_unsent_loglines("display", count=4)
-            self.logs_deque.extend(new_lines)
-            self.display.writelines(list(self.logs_deque))
+            if new_lines:
+                self.logs_deque.extend(new_lines)
+                self.display.writelines(list(self.logs_deque))

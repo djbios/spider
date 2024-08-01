@@ -431,6 +431,7 @@ class Display(adafruit_ssd1306.SSD1306_I2C):
         self.animation = animation
 
     def writelines(self, lines, cut=True):
+        # Attention! Slow method
         if cut:
             lines = lines[: self.MAX_LINES]
             for l in lines:
@@ -443,7 +444,8 @@ class Display(adafruit_ssd1306.SSD1306_I2C):
         self.fill(0)
         for i, line in enumerate(lines):
             self.text(line, 0, i * 10, 1)
-        self.show()
+        if lines:
+            self.show()
 
 
 async def run_callable_async_or_not(callable, *args, **kwargs):

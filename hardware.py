@@ -13,10 +13,9 @@ from routines import RoutinesRegistry, BaseRoutine
 import circuitpython_schedule as schedule
 from logging import log, get_unsent_loglines
 from collections import deque
-
+import asyncio
 from adafruit_httpserver import (
     Server,
-    REQUEST_HANDLED_RESPONSE_SENT,
     Request,
     FileResponse,
 )
@@ -201,8 +200,18 @@ class DisplayRoutine(BaseRoutine):
         super().__init__()
 
     async def tick(self):
-        if self.display.logging:
+        if self.display.mode == Display.MODE_LOGS:
             new_lines = get_unsent_loglines("display", count=4)
             if new_lines:
                 self.logs_deque.extend(new_lines)
                 self.display.writelines(list(self.logs_deque))
+        elif self.display.mode == Display.MODE_STATS:
+            lines = [
+                f"Bat: {battery.get_battery_percentage()}% {battery.get_battery_voltage()}V",
+                f"IP: {wifi.radio.ipv4_address}",
+                f"Accel: {accelerometer.xyz}",
+                f"Angles: {accelerometer.angles}",
+            ]
+            self.display.writelines(lines)
+            await asyncio.sleep(2)
+            

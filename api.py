@@ -1,11 +1,12 @@
 import json
-from hardware import server, battery, accelerometer, light, walker
+from hardware import server, battery, accelerometer, light, walker, display
 from adafruit_httpserver import Request, JSONResponse, POST, GET
 from tests import leg_test
 from routines import RoutinesRegistry, BaseRoutine
 from utils import run_callable_async_or_not
 from flash_storage import storage
 from logging import log, get_unsent_loglines
+
 
 @RoutinesRegistry.register()
 class HttpCommandsRoutine(BaseRoutine):
@@ -65,4 +66,7 @@ commands = {
     "leg-test": leg_test,
     "to-zero": walker.to_zero,
     "calibrate-zero": accelerometer.calibrate_zero,
+    "write-oled": display.write_text,
+    "display-mode": display.set_mode,
+    "set-servos": walker.set_servos,
 }

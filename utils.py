@@ -308,6 +308,38 @@ class Walker:
                 joint.max_angle = hard_limits_dict[f"leg_{i}_{joint_name}_max"]
         log("Hard limits set")
 
+    async def set_servos(
+            self,
+            leg1_hip: int,
+            leg1_knee: int,
+            leg1_ankle: int,
+            leg2_hip: int,
+            leg2_knee: int,
+            leg2_ankle: int,
+            leg3_hip: int,
+            leg3_knee: int,
+            leg3_ankle: int,
+            leg4_hip: int,
+            leg4_knee: int,
+            leg4_ankle: int,
+            hard=False, # TODO
+    ):
+        self.leg1.hip.hard_move(leg1_hip)
+        self.leg1.knee.hard_move(leg1_knee)
+        self.leg1.ankle.hard_move(leg1_ankle)
+
+        self.leg2.hip.hard_move(leg2_hip)
+        self.leg2.knee.hard_move(leg2_knee)
+        self.leg2.ankle.hard_move(leg2_ankle)
+
+        self.leg3.hip.hard_move(leg3_hip)
+        self.leg3.knee.hard_move(leg3_knee)
+        self.leg3.ankle.hard_move(leg3_ankle)
+
+        self.leg4.hip.hard_move(leg4_hip)
+        self.leg4.knee.hard_move(leg4_knee)
+        self.leg4.ankle.hard_move(leg4_ankle)
+
 
 class Light:
     PWM_MAX = 65535
@@ -420,12 +452,16 @@ class Display(adafruit_ssd1306.SSD1306_I2C):
     MAX_LINES = 3
     MAX_LINE_LENGTH = 21
 
+    MODE_NONE = "None"
+    MODE_LOGS = "Logs"
+    MODE_STATS = "Stats"
+
     def __init__(self, width, height, i2c):
         super().__init__(width, height, i2c)
         self.writelines(["", "Initializing..."])
         log("Display initialized")
         self.animation = None
-        self.logging = True
+        self.mode = self.MODE_NONE
 
     def set_animation(self, animation):
         self.animation = animation
@@ -446,6 +482,13 @@ class Display(adafruit_ssd1306.SSD1306_I2C):
             self.text(line, 0, i * 10, 1)
         if lines:
             self.show()
+
+    def write_text(self, text):
+        lines = text.split("\n")
+        self.writelines(lines)
+
+    def set_mode(self, mode):
+        self.mode = mode
 
 
 async def run_callable_async_or_not(callable, *args, **kwargs):

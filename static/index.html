@@ -70,7 +70,7 @@
         }
 
         .row {
-            margin-bottom: 20px;
+            margin: 5px;
         }
 
         .col-md-6 {
@@ -89,16 +89,18 @@
                 <label for="cameraIp" class="form-label">Camera IP Address</label>
                 <input type="text" class="form-control" id="cameraIp" placeholder="Enter camera IP address"
                     value="192.168.178.125">
+
             </div>
         </div>
         <div class="row">
             <div class="col-md-4 mb-4">
-                <div class="img-container" style="transform: rotate(90deg); max-width: 70%;">
+                <div class="img-container container" style="transform: rotate(90deg); max-width: 70%;">
                     <!-- TODO hardcoded IP -->
                     <img id="camera-stream" src="http://192.168.178.125/stream" alt="Camera Stream">
                 </div>
+
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4 container">
                 <div class="row control-row text-center mb-4">
                     <div class="col-12">
                         <button class="btn btn-primary control-button" id="move-forward">↑</button>
@@ -154,6 +156,16 @@
                         <button class="command-button btn btn-primary">Calibrate zero</button>
                     </div>
 
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Logs</h2>
+                <div id="logs-container" style="height: 200px; overflow-y: scroll;">
+                    <div id="logs-content">
+                        <!-- Dynamic logs will be inserted here -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -229,7 +241,7 @@
                     }
                 }
             }
-            
+
             // Set interval to fetch and update stats every 2 seconds
             var intervalId = window.setInterval(function () {
                 $.get(`/api/stats`, function (data) {
@@ -237,6 +249,20 @@
                 });
             }, 2000);
         });
+
+        // Fetch logs and update the logs section
+        function fetchLogs() {
+            $.get(`/api/logs`, function (logs) {
+                logs.forEach(function (log) {
+                    $('#logs-content').append(`<p>${log}</p>`);
+                });
+                // Auto-scroll to the bottom of the logs container
+                $('#logs-container').scrollTop($('#logs-container')[0].scrollHeight);
+            });
+        }
+
+        // Set interval to fetch new logs every 2 seconds
+        var logsIntervalId = window.setInterval(fetchLogs, 2000);
     </script>
 </body>
 

@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass, field
+from python_utils.dataclasses import asdict, dataclass, field
 from typing import List
 import pytest
 

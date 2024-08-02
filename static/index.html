@@ -110,6 +110,7 @@
             </div>
             <div class="col-3">
                 <div class="container">
+                    <h3>Walking (WIP)</h3>
                     <div class="row control-row text-center mb-4">
                         <div class="col-12">
                             <button class="btn btn-primary control-button" id="move-forward">↑</button>
@@ -142,6 +143,7 @@
             </div>
             <div class="col-3">
                 <div class="container">
+                    <h3>Commands</h3>
                     <div class="command row" id="set-light-brightness">
                         <label for="brightness">Brightness %</label>
                         <input type="range" id="brightness" min="0" max="100" value="0" class="w-100 input-type-int"
@@ -158,9 +160,6 @@
                     </div>
                     <div class="command row" id="leg-test">
                         <button class="command-button btn btn-primary">Leg test</button>
-                    </div>
-                    <div class="command row" id="to-zero">
-                        <button class="command-button btn btn-primary">To zero</button>
                     </div>
                     <div class="command row" id="calibrate-zero">
                         <button class="command-button btn btn-primary">Calibrate zero</button>
@@ -184,6 +183,10 @@
             </div>
             <div class="col-3">
                 <div class="container">
+                    <h3>Legs control</h3>
+                    <div class="command row" id="to-zero">
+                        <button class="command-button btn btn-primary">To zero</button>
+                    </div>
                     <label for="live-adjust">Live adjust</label>
                     <input type="checkbox" id="live-adjust">
                     <div class="command row" id="set-servos">

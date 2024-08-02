@@ -1,16 +1,17 @@
 import re
 import sys
-import copy
-import types
-import inspect
-import keyword
-import builtins
-import functools
-import itertools
-import abc
-import _thread
-from types import FunctionType, GenericAlias
-
+#import copy
+#import types
+#import inspect
+#import keyword
+#import builtins
+#from .functools import wraps
+from .itertools import chain
+#import itertools
+#import abc
+#import _thread
+#from types import FunctionType, GenericAlias
+from .reprlib import recursive_repr
 
 __all__ = ['dataclass',
            'field',
@@ -194,7 +195,7 @@ KW_ONLY = _KW_ONLY_TYPE()
 
 # Since most per-field metadata will be unused, create an empty
 # read-only proxy that can be shared among all fields.
-_EMPTY_METADATA = types.MappingProxyType({})
+_EMPTY_METADATA = {}
 
 # Markers for the various kinds of fields and pseudo-fields.
 class _FIELD_BASE:
@@ -223,25 +224,6 @@ _POST_INIT_NAME = '__post_init__'
 # https://bugs.python.org/issue33453 for details.
 _MODULE_IDENTIFIER_RE = re.compile(r'^(?:\s*(\w+)\s*\.)?\s*(\w+)')
 
-# This function's logic is copied from "recursive_repr" function in
-# reprlib module to avoid dependency.
-def _recursive_repr(user_function):
-    # Decorator to make a repr function return "..." for a recursive
-    # call.
-    repr_running = set()
-
-    @functools.wraps(user_function)
-    def wrapper(self):
-        key = id(self), _thread.get_ident()
-        if key in repr_running:
-            return '...'
-        repr_running.add(key)
-        try:
-            result = user_function(self)
-        finally:
-            repr_running.discard(key)
-        return result
-    return wrapper
 
 class InitVar:
     __slots__ = ('type', )
@@ -296,11 +278,11 @@ class Field:
         self.compare = compare
         self.metadata = (_EMPTY_METADATA
                          if metadata is None else
-                         types.MappingProxyType(metadata))
+                         {})
         self.kw_only = kw_only
         self._field_type = None
 
-    @_recursive_repr
+    @recursive_repr
     def __repr__(self):
         return ('Field('
                 f'name={self.name!r},'
@@ -331,7 +313,7 @@ class Field:
             # it.
             func(self.default, owner, name)
 
-    __class_getitem__ = classmethod(GenericAlias)
+    #__class_getitem__ = classmethod(GenericAlias)
 
 
 class _DataclassParams:
@@ -593,7 +575,7 @@ def _repr_fn(fields, globals):
                                 for f in fields]) +
                      ')"'],
                      globals=globals)
-    return _recursive_repr(fn)
+    return recursive_repr(fn)
 
 
 def _frozen_get_del_attr(cls, fields, globals):
@@ -732,9 +714,9 @@ def _get_field(cls, a_name, a_type, default_kw_only):
     if isinstance(default, Field):
         f = default
     else:
-        if isinstance(default, types.MemberDescriptorType):
-            # This is a field in __slots__, so it has no default value.
-            default = MISSING
+        # if isinstance(default, types.MemberDescriptorType):
+        #     # This is a field in __slots__, so it has no default value.
+        #     default = MISSING
         f = field(default=default)
 
     # Only at this point do we know the name and the type.  Set them.
@@ -820,8 +802,8 @@ def _get_field(cls, a_name, a_type, default_kw_only):
 def _set_qualname(cls, value):
     # Ensure that the functions returned from _create_fn uses the proper
     # __qualname__ (the class they belong to).
-    if isinstance(value, FunctionType):
-        value.__qualname__ = f"{cls.__qualname__}.{value.__name__}"
+    # if isinstance(value, FunctionType):
+    #     value.__qualname__ = f"{cls.__qualname__}.{value.__name__}"
     return value
 
 def _set_new_attribute(cls, name, value):
@@ -1092,12 +1074,12 @@ def _process_class(cls, init, repr, eq, order, unsafe_hash, frozen,
 
     if not getattr(cls, '__doc__'):
         # Create a class doc-string.
-        try:
-            # In some cases fetching a signature is not possible.
-            # But, we surely should not fail in this case.
-            text_sig = str(inspect.signature(cls)).replace(' -> None', '')
-        except (TypeError, ValueError):
-            text_sig = ''
+        # try:
+        #     # In some cases fetching a signature is not possible.
+        #     # But, we surely should not fail in this case.
+        #     text_sig = str(inspect.signature(cls)).replace(' -> None', '')
+        # except (TypeError, ValueError):
+        text_sig = ''
         cls.__doc__ = (cls.__name__ + text_sig)
 
     if match_args:
@@ -1111,7 +1093,7 @@ def _process_class(cls, init, repr, eq, order, unsafe_hash, frozen,
     if slots:
         cls = _add_slots(cls, frozen, weakref_slot)
 
-    abc.update_abstractmethods(cls)
+    #abc.update_abstractmethods(cls)
 
     return cls
 
@@ -1159,14 +1141,13 @@ def _add_slots(cls, is_frozen, weakref_slot):
     field_names = tuple(f.name for f in fields(cls))
     # Make sure slots don't overlap with those in base classes.
     inherited_slots = set(
-        itertools.chain.from_iterable(map(_get_slots, cls.__mro__[1:-1]))
+        chain(map(_get_slots, cls.__mro__[1:-1]))
     )
     # The slots for our class.  Remove slots from our base classes.  Add
     # '__weakref__' if weakref_slot was given, unless it is already present.
     cls_dict["__slots__"] = tuple(
-        itertools.filterfalse(
-            inherited_slots.__contains__,
-            itertools.chain(
+        filter(inherited_slots.__contains__,
+            chain(
                 # gh-93521: '__weakref__' also needs to be filtered out if
                 # already present in inherited_slots
                 field_names, ('__weakref__',) if weakref_slot else ()
@@ -1324,7 +1305,7 @@ def _asdict_inner(obj, dict_factory):
                           _asdict_inner(v, dict_factory))
                          for k, v in obj.items())
     else:
-        return copy.deepcopy(obj)
+        return obj
 
 
 def astuple(obj, *, tuple_factory=tuple):
@@ -1375,7 +1356,7 @@ def _astuple_inner(obj, tuple_factory):
         return type(obj)((_astuple_inner(k, tuple_factory), _astuple_inner(v, tuple_factory))
                           for k, v in obj.items())
     else:
-        return copy.deepcopy(obj)
+        return obj
 
 
 def make_dataclass(cls_name, fields, *, bases=(), namespace=None, init=True,
@@ -1427,8 +1408,8 @@ def make_dataclass(cls_name, fields, *, bases=(), namespace=None, init=True,
 
         if not isinstance(name, str) or not name.isidentifier():
             raise TypeError(f'Field names must be valid identifiers: {name!r}')
-        if keyword.iskeyword(name):
-            raise TypeError(f'Field names must not be keywords: {name!r}')
+        # if keyword.iskeyword(name):
+        #     raise TypeError(f'Field names must not be keywords: {name!r}')
         if name in seen:
             raise TypeError(f'Field name duplicated: {name!r}')
 
@@ -1443,7 +1424,7 @@ def make_dataclass(cls_name, fields, *, bases=(), namespace=None, init=True,
 
     # We use `types.new_class()` instead of simply `type()` to allow dynamic creation
     # of generic dataclasses.
-    cls = types.new_class(cls_name, bases, {}, exec_body_callback)
+    cls = type(cls_name, bases, {}, exec_body_callback)
 
     # Apply the normal decorator.
     return dataclass(cls, init=init, repr=repr, eq=eq, order=order,

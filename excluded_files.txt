@@ -6,3 +6,7 @@ extra_libs/
 .gitignore
 image.png
 data.json
+tests/
+setup.cfg
+__pycache__/
+.DS_Store

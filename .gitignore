@@ -1,2 +1,5 @@
 .DS_Store
 settings.toml
+__pycache__/
+.pytest_cache/
+.DS_Store

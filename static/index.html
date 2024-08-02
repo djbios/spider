@@ -28,8 +28,8 @@
         }
 
         .control-button {
-            width: 80px;
-            height: 80px;
+            width: 50px;
+            height: 50px;
             font-size: 24px;
             border-radius: 50%;
             margin: 10px;
@@ -37,7 +37,6 @@
 
         .command-button {
             width: 100%;
-            height: 50px;
             font-size: 16px;
             border-radius: 8px;
             margin: 10px;
@@ -82,7 +81,7 @@
 </head>
 
 <body>
-    <div class="container my-5">
+    <div class="container-fluid">
         <h1 class="text-center mb-4">Spider Robot Control</h1>
         <div class="row mb-3">
             <div class="col-md-4">
@@ -93,292 +92,301 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="img-container container" style="transform: rotate(90deg); max-width: 70%;">
-                    <!-- TODO hardcoded IP -->
-                    <img id="camera-stream" src="http://192.168.178.125/stream" alt="Camera Stream">
-                </div>
-
-            </div>
-            <div class="col-md-4 container">
-                <div class="row control-row text-center mb-4">
-                    <div class="col-12">
-                        <button class="btn btn-primary control-button" id="move-forward">↑</button>
+            <div class="col-3">
+                <div class="container">
+                    <div class="img-container container">
+                        <!-- TODO hardcoded IP -->
+                        <img id="camera-stream" src="http://192.168.178.125/stream" alt="Camera Stream">
                     </div>
-                </div>
-                <div class="row control-row text-center mb-4">
-                    <div class="col-4">
-                        <button class="btn btn-primary control-button" id="move-left">←</button>
+                    <div>
+                        <h2>Logs</h2>
+                        <div id="logs-container" style="height: 200px; overflow-y: scroll;">
+                            <div id="logs-content">
+                                <!-- Dynamic logs will be inserted here -->
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-4">
-                        <button class="btn btn-danger control-button" id="stop">⛔</button>
-                    </div>
-                    <div class="col-4">
-                        <button class="btn btn-primary control-button" id="move-right">→</button>
-                    </div>
-                </div>
-                <div class="row control-row text-center mb-4">
-                    <div class="col-12">
-                        <button class="btn btn-primary control-button" id="move-backward">↓</button>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <table id="stats-table" class="table">
-                        <tbody id="stats-tbody">
-                            <!-- Dynamic rows will be inserted here -->
-                        </tbody>
-                    </table>
                 </div>
             </div>
-            <div class="col-md-4">
-
-                <div class="command row" id="set-light-brightness">
-                    <label for="brightness">Brightness %</label>
-                    <input type="range" id="brightness" min="0" max="100" value="0" class="w-100 input-type-int"
-                        oninput="this.nextElementSibling.value = this.value">
-                    <output>0</output>
-                    <button class="command-button btn btn-primary">Set light brightness</button>
-                </div>
-                <div class="command row" id="wiggle">
-                    <label for="movements">Movements number</label>
-                    <input type="range" , id="movements" min="1" max="30" value="10" class="w-100 input-type-int"
-                        oninput="this.nextElementSibling.value = this.value">
-                    <output>10</output>
-                    <button class="command-button btn btn-primary">Wiggle</button>
-                </div>
-                <div class="command row" id="leg-test">
-                    <button class="command-button btn btn-primary">Leg test</button>
-                </div>
-                <div class="command row" id="to-zero">
-                    <button class="command-button btn btn-primary">To zero</button>
-                </div>
-                <div class="command row" id="calibrate-zero">
-                    <button class="command-button btn btn-primary">Calibrate zero</button>
-                </div>
-                <div class="command row" id="write-oled">
-                    <label for="text">Text</label>
-                    <input type="text" id="text" class="w-100 input-type-str">
-                    <button class="command-button btn btn-primary">Write OLED</button>
-                </div>
-                <div class="command row" id="display-mode">
-                    <label for="mode">Mode</label>
-                    <select id="mode" class="w-100 input-type-str">
-                        <option value="None">None</option>
-                        <option value="Logs">Logs</option>
-                        <option value="Stats">Stats</option>
-                    </select>
-                    <button class="command-button btn btn-primary">Set display mode</button>
-                </div>
-                <label for="live-adjust">Live adjust</label>
-                <input type="checkbox" id="live-adjust">
-                <div class="command row" id="set-servos">
-                    <div class="col">
-                        <div class="row">
-                            <h5>Leg 1</h5>
-                            <label for="leg1_hip">Hip</label>
-                            <input type="range" id="leg1_hip" min="0" max="180" value="90" class="w-100 input-type-int"
-                                oninput="this.nextElementSibling.value = this.value">
-                            <output>90</output>
-                            <label for="leg1_knee">Knee</label>
-                            <input type="range" id="leg1_knee" min="0" max="180" value="90" class="w-100 input-type-int"
-                                oninput="this.nextElementSibling.value = this.value">
-                            <output>90</output>
-                            <label for="leg1_ankle">Ankle</label>
-                            <input type="range" id="leg1_ankle" min="0" max="180" value="90"
-                                class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
-                            <output>90</output>
-                        </div>
-                        <div class="row">
-                            <h5>Leg 4</h5>
-                            <label for="leg4_hip">Hip</label>
-                            <input type="range" id="leg4_hip" min="0" max="180" value="90" class="w-100 input-type-int"
-                                oninput="this.nextElementSibling.value = this.value">
-                            <output>90</output>
-                            <label for="leg4_knee">Knee</label>
-                            <input type="range" id="leg4_knee" min="0" max="180" value="90" class="w-100 input-type-int"
-                                oninput="this.nextElementSibling.value = this.value">
-                            <output>90</output>
-                            <label for="leg4_ankle">Ankle</label>
-                            <input type="range" id="leg4_ankle" min="0" max="180" value="90"
-                                class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
-                            <output>90</output>
+            <div class="col-3">
+                <div class="container">
+                    <div class="row control-row text-center mb-4">
+                        <div class="col-12">
+                            <button class="btn btn-primary control-button" id="move-forward">↑</button>
                         </div>
                     </div>
-                    <div class="col">
-                        <div class="row">
-                            <h5>Leg 2</h5>
-                            <label for="leg2_hip">Hip</label>
-                            <input type="range" id="leg2_hip" min="0" max="180" value="90" class="w-100 input-type-int"
-                                oninput="this.nextElementSibling.value = this.value">
-                            <output>90</output>
-                            <label for="leg2_knee">Knee</label>
-                            <input type="range" id="leg2_knee" min="0" max="180" value="90" class="w-100 input-type-int"
-                                oninput="this.nextElementSibling.value = this.value">
-                            <output>90</output>
-                            <label for="leg2_ankle">Ankle</label>
-                            <input type="range" id="leg2_ankle" min="0" max="180" value="90"
-                                class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
-                            <output>90</output>
+                    <div class="row control-row text-center mb-4">
+                        <div class="col-4">
+                            <button class="btn btn-primary control-button" id="move-left">←</button>
                         </div>
-                        <div class="row">
-                            <h5>Leg 3</h5>
-                            <label for="leg3_hip">Hip</label>
-                            <input type="range" id="leg3_hip" min="0" max="180" value="90" class="w-100 input-type-int"
-                                oninput="this.nextElementSibling.value = this.value">
-                            <output>90</output>
-                            <label for="leg3_knee">Knee</label>
-                            <input type="range" id="leg3_knee" min="0" max="180" value="90" class="w-100 input-type-int"
-                                oninput="this.nextElementSibling.value = this.value">
-                            <output>90</output>
-                            <label for="leg3_ankle">Ankle</label>
-                            <input type="range" id="leg3_ankle" min="0" max="180" value="90"
-                                class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
-                            <output>90</output>
+                        <div class="col-4">
+                            <button class="btn btn-danger control-button" id="stop">⛔</button>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-primary control-button" id="move-right">→</button>
                         </div>
                     </div>
-                    <label for="hard">Hard</label>
-                    <input type="checkbox" id="hard" class="input-type-bool">
-
-                    <button class="command-button btn btn-primary">Set servos</button>
+                    <div class="row control-row text-center mb-4">
+                        <div class="col-12">
+                            <button class="btn btn-primary control-button" id="move-backward">↓</button>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <table id="stats-table" class="table">
+                            <tbody id="stats-tbody">
+                                <!-- Dynamic rows will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="command row" id="save-position">
-                    <label for="name">Name</label>
-                    <input type="text" id="name" class="w-100 input-type-str">
-                    <button class="command-button btn btn-primary" id="save-position">Save position to memory</button>
-                </div>
-                <div class="command row" id="load-position">
-                    <label for="name">Name</label>
-                    <input type="text" id="name" class="w-100 input-type-str">
-                    <label for="hard">Hard</label>
-                    <input type="checkbox" id="hard" class="input-type-bool">
-                    <button class="command-button btn btn-primary" id="load-position">Load position from memory</button>
-                </div>
-
             </div>
-            <div class="row">
-                <div class="col-md-12">
-                    <h2>Logs</h2>
-                    <div id="logs-container" style="height: 200px; overflow-y: scroll;">
-                        <div id="logs-content">
-                            <!-- Dynamic logs will be inserted here -->
+            <div class="col-3">
+                <div class="container">
+                    <div class="command row" id="set-light-brightness">
+                        <label for="brightness">Brightness %</label>
+                        <input type="range" id="brightness" min="0" max="100" value="0" class="w-100 input-type-int"
+                            oninput="this.nextElementSibling.value = this.value">
+                        <output>0</output>
+                        <button class="command-button btn btn-primary">Set light brightness</button>
+                    </div>
+                    <div class="command row" id="wiggle">
+                        <label for="movements">Movements number</label>
+                        <input type="range" , id="movements" min="1" max="30" value="10" class="w-100 input-type-int"
+                            oninput="this.nextElementSibling.value = this.value">
+                        <output>10</output>
+                        <button class="command-button btn btn-primary">Wiggle</button>
+                    </div>
+                    <div class="command row" id="leg-test">
+                        <button class="command-button btn btn-primary">Leg test</button>
+                    </div>
+                    <div class="command row" id="to-zero">
+                        <button class="command-button btn btn-primary">To zero</button>
+                    </div>
+                    <div class="command row" id="calibrate-zero">
+                        <button class="command-button btn btn-primary">Calibrate zero</button>
+                    </div>
+                    <div class="command row" id="write-oled">
+                        <label for="text">Text</label>
+                        <input type="text" id="text" class="w-100 input-type-str">
+                        <button class="command-button btn btn-primary">Write OLED</button>
+                    </div>
+                    <div class="command row" id="display-mode">
+                        <label for="mode">Mode</label>
+                        <select id="mode" class="w-100 input-type-str">
+                            <option value="None">None</option>
+                            <option value="Logs">Logs</option>
+                            <option value="Stats">Stats</option>
+                        </select>
+                        <button class="command-button btn btn-primary">Set display mode</button>
+                    </div>
+
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="container">
+                    <label for="live-adjust">Live adjust</label>
+                    <input type="checkbox" id="live-adjust">
+                    <div class="command row" id="set-servos">
+                        <div class="col">
+                            <div class="row">
+                                <h5>Leg 1</h5>
+                                <label for="leg1_hip">Hip</label>
+                                <input type="range" id="leg1_hip" min="0" max="180" value="90"
+                                    class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                                <output>90</output>
+                                <label for="leg1_knee">Knee</label>
+                                <input type="range" id="leg1_knee" min="0" max="180" value="90"
+                                    class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                                <output>90</output>
+                                <label for="leg1_ankle">Ankle</label>
+                                <input type="range" id="leg1_ankle" min="0" max="180" value="90"
+                                    class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                                <output>90</output>
+                            </div>
+                            <div class="row">
+                                <h5>Leg 4</h5>
+                                <label for="leg4_hip">Hip</label>
+                                <input type="range" id="leg4_hip" min="0" max="180" value="90"
+                                    class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                                <output>90</output>
+                                <label for="leg4_knee">Knee</label>
+                                <input type="range" id="leg4_knee" min="0" max="180" value="90"
+                                    class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                                <output>90</output>
+                                <label for="leg4_ankle">Ankle</label>
+                                <input type="range" id="leg4_ankle" min="0" max="180" value="90"
+                                    class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                                <output>90</output>
+                            </div>
                         </div>
+                        <div class="col">
+                            <div class="row">
+                                <h5>Leg 2</h5>
+                                <label for="leg2_hip">Hip</label>
+                                <input type="range" id="leg2_hip" min="0" max="180" value="90"
+                                    class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                                <output>90</output>
+                                <label for="leg2_knee">Knee</label>
+                                <input type="range" id="leg2_knee" min="0" max="180" value="90"
+                                    class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                                <output>90</output>
+                                <label for="leg2_ankle">Ankle</label>
+                                <input type="range" id="leg2_ankle" min="0" max="180" value="90"
+                                    class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                                <output>90</output>
+                            </div>
+                            <div class="row">
+                                <h5>Leg 3</h5>
+                                <label for="leg3_hip">Hip</label>
+                                <input type="range" id="leg3_hip" min="0" max="180" value="90"
+                                    class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                                <output>90</output>
+                                <label for="leg3_knee">Knee</label>
+                                <input type="range" id="leg3_knee" min="0" max="180" value="90"
+                                    class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                                <output>90</output>
+                                <label for="leg3_ankle">Ankle</label>
+                                <input type="range" id="leg3_ankle" min="0" max="180" value="90"
+                                    class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
+                                <output>90</output>
+                            </div>
+                        </div>
+                        <label for="hard">Hard</label>
+                        <input type="checkbox" id="hard" class="input-type-bool">
+
+                        <button class="command-button btn btn-primary">Set servos</button>
+                    </div>
+                    <div class="command row" id="save-position">
+                        <label for="name">Name</label>
+                        <input type="text" id="name" class="w-100 input-type-str">
+                        <button class="command-button btn btn-primary" id="save-position">Save position to
+                            memory</button>
+                    </div>
+                    <div class="command row" id="load-position">
+                        <label for="name">Name</label>
+                        <input type="text" id="name" class="w-100 input-type-str">
+                        <label for="hard">Hard</label>
+                        <input type="checkbox" id="hard" class="input-type-bool">
+                        <button class="command-button btn btn-primary" id="load-position">Load position from
+                            memory</button>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <script>
-            $(document).ready(function () {
-                $('#cameraIp').on('change', function () {
-                    const camIp = $(this).val();
-                    $('#camera-stream').attr('src', `http://${camIp}/stream`);
+    <script>
+        $(document).ready(function () {
+            $('#cameraIp').on('change', function () {
+                const camIp = $(this).val();
+                $('#camera-stream').attr('src', `http://${camIp}/stream`);
+            });
+
+            $('.command-button').on('click', function () {
+                const params = {};
+
+                // Find the specific command container for the clicked button
+                const commandContainer = $(this).closest('.command');
+                const action = commandContainer.attr('id');
+
+                // Collect all inputs within the specific command container
+                commandContainer.find('input, select').each(function () {
+                    const id = $(this).attr('id');
+                    let value = $(this).val();
+
+                    // Determine type based on class
+                    if ($(this).hasClass('input-type-int')) {
+                        value = parseInt(value, 10); // Convert to integer
+                    } else if ($(this).hasClass('input-type-float')) {
+                        value = parseFloat(value); // Convert to float
+                    } else if ($(this).hasClass('input-type-str')) {
+                        value = String(value); // Convert to string
+                    } else if ($(this).hasClass('input-type-bool')) {
+                        value = $(this).prop('checked'); // Convert to boolean
+                    }
+
+                    params[id] = value; // Use id as the key and value as the value
                 });
 
-                $('.command-button').on('click', function () {
-                    const params = {};
 
-                    // Find the specific command container for the clicked button
-                    const commandContainer = $(this).closest('.command');
-                    const action = commandContainer.attr('id');
+                // Add action to the params
+                const body = {
+                    action: action,
+                    params: params
+                };
 
-                    // Collect all inputs within the specific command container
-                    commandContainer.find('input, select').each(function () {
-                        const id = $(this).attr('id');
-                        let value = $(this).val();
-
-                        // Determine type based on class
-                        if ($(this).hasClass('input-type-int')) {
-                            value = parseInt(value, 10); // Convert to integer
-                        } else if ($(this).hasClass('input-type-float')) {
-                            value = parseFloat(value); // Convert to float
-                        } else if ($(this).hasClass('input-type-str')) {
-                            value = String(value); // Convert to string
-                        } else if ($(this).hasClass('input-type-bool')) {
-                            value = $(this).prop('checked'); // Convert to boolean
-                        }
-
-                        params[id] = value; // Use id as the key and value as the value
-                    });
-
-
-                    // Add action to the params
-                    const body = {
-                        action: action,
-                        params: params
-                    };
-
-                    $.ajax({
-                        url: `/api/command`,
-                        type: 'POST',
-                        data: JSON.stringify(body),
-                        contentType: 'application/json',
-                        success: function (data) {
-                            console.log(data);
-                        }
-                    });
-                });
-                $('#live-adjust').on('change', function () {
-                    const liveAdjust = $(this).prop('checked');
-                    let sliders = $('#set-servos').find('input');
-                    let debounceTimer;
-
-                    if (liveAdjust) {
-                        sliders.on('input', function () {
-                            clearTimeout(debounceTimer);
-                            debounceTimer = setTimeout(function () {
-                                $('#set-servos').find('.command-button').click();
-                            }, 500);
-                        });
-                    } else {
-                        sliders.off('input');
-                        clearTimeout(debounceTimer);
+                $.ajax({
+                    url: `/api/command`,
+                    type: 'POST',
+                    data: JSON.stringify(body),
+                    contentType: 'application/json',
+                    success: function (data) {
+                        console.log(data);
                     }
                 });
+            });
+            $('#live-adjust').on('change', function () {
+                const liveAdjust = $(this).prop('checked');
+                let sliders = $('#set-servos').find('input');
+                let debounceTimer;
 
-                // Function to update stats table dynamically
-                function updateStatsTable(data) {
-                    var statsTbody = $('#stats-tbody');
-                    statsTbody.empty(); // Clear existing rows
+                if (liveAdjust) {
+                    sliders.on('input', function () {
+                        clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(function () {
+                            $('#set-servos').find('.command-button').click();
+                        }, 500);
+                    });
+                } else {
+                    sliders.off('input');
+                    clearTimeout(debounceTimer);
+                }
+            });
 
-                    // Iterate over each stat in the data
-                    for (var key in data) {
-                        if (data.hasOwnProperty(key)) {
-                            var value = data[key];
-                            // Convert value to a readable string if it's an array
-                            var valueText = Array.isArray(value) ? value.join(', ') : value;
+            // Function to update stats table dynamically
+            function updateStatsTable(data) {
+                var statsTbody = $('#stats-tbody');
+                statsTbody.empty(); // Clear existing rows
 
-                            // Create a new row for the stat
-                            var newRow = `<tr>
+                // Iterate over each stat in the data
+                for (var key in data) {
+                    if (data.hasOwnProperty(key)) {
+                        var value = data[key];
+                        // Convert value to a readable string if it's an array
+                        var valueText = Array.isArray(value) ? value.join(', ') : value;
+
+                        // Create a new row for the stat
+                        var newRow = `<tr>
                             <td>${key.replace(/_/g, ' ')}</td>
                             <td>${valueText}</td>
                           </tr>`;
-                            statsTbody.append(newRow);
-                        }
+                        statsTbody.append(newRow);
                     }
                 }
-
-                // Set interval to fetch and update stats every 2 seconds
-                var intervalId = window.setInterval(function () {
-                    $.get(`/api/stats`, function (data) {
-                        updateStatsTable(data);
-                    });
-                }, 10000);
-            });
-
-            // Fetch logs and update the logs section
-            function fetchLogs() {
-                $.get(`/api/logs`, function (logs) {
-                    logs.forEach(function (log) {
-                        $('#logs-content').append(`<p>${log}</p>`);
-                    });
-                    // Auto-scroll to the bottom of the logs container
-                    $('#logs-container').scrollTop($('#logs-container')[0].scrollHeight);
-                });
             }
 
-            // Set interval to fetch new logs every 2 seconds
-            var logsIntervalId = window.setInterval(fetchLogs, 10000);
-        </script>
+            // Set interval to fetch and update stats every 2 seconds
+            var intervalId = window.setInterval(function () {
+                $.get(`/api/stats`, function (data) {
+                    updateStatsTable(data);
+                });
+            }, 10000);
+        });
+
+        // Fetch logs and update the logs section
+        function fetchLogs() {
+            $.get(`/api/logs`, function (logs) {
+                logs.forEach(function (log) {
+                    $('#logs-content').append(`<p>${log}</p>`);
+                });
+                // Auto-scroll to the bottom of the logs container
+                $('#logs-container').scrollTop($('#logs-container')[0].scrollHeight);
+            });
+        }
+
+        // Set interval to fetch new logs every 2 seconds
+        var logsIntervalId = window.setInterval(fetchLogs, 10000);
+    </script>
 </body>
 
 </html>

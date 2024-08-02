@@ -18,7 +18,7 @@ __all__ = ['update_wrapper', 'wraps', 'WRAPPER_ASSIGNMENTS', 'WRAPPER_UPDATES',
 #from abc import get_cache_token
 from collections import namedtuple
 # import types, weakref  # Deferred to single_dispatch()
-from .reprlib import recursive_repr
+#from .reprlib import recursive_repr
 #from types import MethodType
 #from _thread import RLock
 
@@ -303,15 +303,15 @@ class partial:
         keywords = {**self.keywords, **keywords}
         return self.func(*self.args, *args, **keywords)
 
-    @recursive_repr()
-    def __repr__(self):
-        cls = type(self)
-        qualname = cls.__qualname__
-        module = cls.__module__
-        args = [repr(self.func)]
-        args.extend(repr(x) for x in self.args)
-        args.extend(f"{k}={v!r}" for (k, v) in self.keywords.items())
-        return f"{module}.{qualname}({', '.join(args)})"
+    # @recursive_repr()
+    # def __repr__(self):
+    #     cls = type(self)
+    #     qualname = cls.__qualname__
+    #     module = cls.__module__
+    #     args = [repr(self.func)]
+    #     args.extend(repr(x) for x in self.args)
+    #     args.extend(f"{k}={v!r}" for (k, v) in self.keywords.items())
+    #     return f"{module}.{qualname}({', '.join(args)})"
 
     def __get__(self, obj, objtype=None):
         if obj is None:

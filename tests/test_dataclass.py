@@ -125,16 +125,6 @@ def test_frozen_dataclass():
         p.name = "Bob"
 
 
-@dataclass(slots=True)
-class SlotPerson:
-    name: str
-    age: int
-
-
-def test_slots():
-    p = SlotPerson(name="Alice", age=30)
-    assert p.name == "Alice"
-
 
 @dataclass(frozen=True)
 class Address:

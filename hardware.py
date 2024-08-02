@@ -22,7 +22,7 @@ from adafruit_httpserver import (
 from logging import log
 
 DEFAULT_SPEED = 1000
-DEFAULT_ACCELERATION = 1000
+DEFAULT_ACCELERATION = 500
 
 WALKER_CALIBRATION_ANGLES = {
     "leg1": {

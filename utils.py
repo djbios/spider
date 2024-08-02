@@ -83,7 +83,9 @@ class SmoothServo:
         :param default_angle: Default angle, starting position
         """
         self.pwm = pwm
-        self._servo = servo.Servo(self.pwm)
+        self._servo = servo.Servo(
+            self.pwm, actuation_range=200
+        )  # 200 just to disable their range check, we do it ourselves
         self.min_angle = min_angle
         self.max_angle = max_angle
         self.current_angle = default_angle
@@ -111,31 +113,44 @@ class SmoothServo:
         """
         :param target_angle: Target angle for the servo in degrees
         """
-        self.target_angle = max(self.min_angle, min(self.max_angle, target_angle))
+        self.target_angle = target_angle
 
     def tick(self):
         """
         Should be called in a loop to update the servo position
         """
+        if not self.current_movement:
+            return
         current_time = time.monotonic()
+        movement_from, movement_to = self.current_movement
         delta_time = current_time - self.last_update_time
         self.last_update_time = current_time
 
         err = self.target_angle - self.current_angle
         if abs(err) > 0.1:
-            deceleration_distance = (self.speed * self.speed) / (2 * self.acceleration)
-            if deceleration_distance >= abs(err):
-                self.speed -= self.acceleration * delta_time * self._sign(self.speed)
-            else:
-                self.speed += self.acceleration * delta_time * self._sign(err)
-
-            self.speed = max(-self.max_speed, min(self.max_speed, self.speed))
+            this_dir = self.speed**2 / self.acceleration / 2.0 >= abs(
+                err
+            )  # Time to decelerate
+            self.speed += (
+                self.acceleration
+                * delta_time
+                * (-1 if this_dir else 1)
+                * (1 if err > 0 else -1)
+            )
+            self.speed = max(-self.max_speed, min(self.speed, self.max_speed))
 
             step = self.speed * delta_time
-            next_angle = self.current_angle + step
 
+            # Crazy stupid workaround but I have no idea
+            if movement_from < movement_to:
+                if step < 0:
+                    step = -step
+            else:
+                if step > 0:
+                    step = -step
+
+            next_angle = self.current_angle + step
             # Check that we not overshoot the target
-            movement_from, movement_to = self.current_movement
             if movement_from < movement_to:
                 if next_angle > movement_to:
                     next_angle = movement_to
@@ -143,9 +158,20 @@ class SmoothServo:
                 if next_angle < movement_to:
                     next_angle = movement_to
 
-            assert (
-                self.min_angle <= next_angle <= self.max_angle
-            ), f"Angle out of bounds: {next_angle}, {step}, {err}, {self.target_angle}, {self.current_angle}"
+            assert self.min_angle <= next_angle <= self.max_angle, "\n".join(
+                [
+                    "Angle out of bounds. ",
+                    f"Current angle: {self.current_angle},",
+                    f"Step: {step},",
+                    f"Next angle: {next_angle},",
+                    f"Speed: {self.speed},",
+                    f"Acceleration: {self.acceleration},",
+                    f"Delta time: {delta_time},",
+                    f"Movement: {self.current_movement}",
+                    f"Max angle: {self.max_angle}",
+                    f"Min angle: {self.min_angle}",
+                ]
+            )
 
             self.current_angle = next_angle
             self.set_servo_angle(next_angle)
@@ -192,6 +218,19 @@ class Joint(SmoothServo):
         log("Joint initialized")
 
     async def move(self, angle):
+        if angle < self.min_angle:
+            print(f"Target angle {angle} is less than min angle {self.min_angle}")
+            return
+        if angle > self.max_angle:
+            print(f"Target angle {angle} is more than max angle {self.max_angle}")
+            return
+        if angle == self.current_angle:
+            return
+
+        while self.current_movement:
+            await asyncio.sleep(0.01)  # Wait for the previous movement to finish
+
+        print(f"Move to {angle}")
         self.set_target(angle)
         self.start()
         while self.current_movement:
@@ -309,68 +348,76 @@ class Walker:
         log("Hard limits set")
 
     async def set_servos(
-            self,
-            leg1_hip: int,
-            leg1_knee: int,
-            leg1_ankle: int,
-            leg2_hip: int,
-            leg2_knee: int,
-            leg2_ankle: int,
-            leg3_hip: int,
-            leg3_knee: int,
-            leg3_ankle: int,
-            leg4_hip: int,
-            leg4_knee: int,
-            leg4_ankle: int,
-            hard=False, # TODO
+        self,
+        leg1_hip: int,
+        leg1_knee: int,
+        leg1_ankle: int,
+        leg2_hip: int,
+        leg2_knee: int,
+        leg2_ankle: int,
+        leg3_hip: int,
+        leg3_knee: int,
+        leg3_ankle: int,
+        leg4_hip: int,
+        leg4_knee: int,
+        leg4_ankle: int,
+        hard=False,  # TODO
     ):
         if hard:
             method = "hard_move"
         else:
             method = "move"
-
-        await run_callable_async_or_not(getattr(self.leg1.hip, method), angle=leg1_hip)
-        await run_callable_async_or_not(getattr(self.leg1.knee, method), angle=leg1_knee)
-        await run_callable_async_or_not(getattr(self.leg1.ankle, method), angle=leg1_ankle)
-
-        await run_callable_async_or_not(getattr(self.leg2.hip, method), angle=leg2_hip)
-        await run_callable_async_or_not(getattr(self.leg2.knee, method), angle=leg2_knee)
-        await run_callable_async_or_not(getattr(self.leg2.ankle, method), angle=leg2_ankle)
-
-        await run_callable_async_or_not(getattr(self.leg3.hip, method), angle=leg3_hip)
-        await run_callable_async_or_not(getattr(self.leg3.knee, method), angle=leg3_knee)
-        await run_callable_async_or_not(getattr(self.leg3.ankle, method), angle=leg3_ankle)
-
-        await run_callable_async_or_not(getattr(self.leg4.hip, method), angle=leg4_hip)
-        await run_callable_async_or_not(getattr(self.leg4.knee, method), angle=leg4_knee)
-        await run_callable_async_or_not(getattr(self.leg4.ankle, method), angle=leg4_ankle)
-        
+        # OMG this ugly
+        coroutines = [
+            run_callable_async_or_not(getattr(self.leg1.hip, method), angle=leg1_hip),
+            run_callable_async_or_not(getattr(self.leg1.knee, method), angle=leg1_knee),
+            run_callable_async_or_not(
+                getattr(self.leg1.ankle, method), angle=leg1_ankle
+            ),
+            run_callable_async_or_not(getattr(self.leg2.hip, method), angle=leg2_hip),
+            run_callable_async_or_not(getattr(self.leg2.knee, method), angle=leg2_knee),
+            run_callable_async_or_not(
+                getattr(self.leg2.ankle, method), angle=leg2_ankle
+            ),
+            run_callable_async_or_not(getattr(self.leg3.hip, method), angle=leg3_hip),
+            run_callable_async_or_not(getattr(self.leg3.knee, method), angle=leg3_knee),
+            run_callable_async_or_not(
+                getattr(self.leg3.ankle, method), angle=leg3_ankle
+            ),
+            run_callable_async_or_not(getattr(self.leg4.hip, method), angle=leg4_hip),
+            run_callable_async_or_not(getattr(self.leg4.knee, method), angle=leg4_knee),
+            run_callable_async_or_not(
+                getattr(self.leg4.ankle, method), angle=leg4_ankle
+            ),
+        ]
+        await asyncio.gather(*[asyncio.create_task(c) for c in coroutines])
 
     def save_position(self, name: str):
-        storage['saved_positions'] = storage.get('saved_positions', {})
-        storage['saved_positions'][name] = {
-            'leg1_hip': self.leg1.hip.current_angle,
-            'leg1_knee': self.leg1.knee.current_angle,
-            'leg1_ankle': self.leg1.ankle.current_angle,
-            'leg2_hip': self.leg2.hip.current_angle,
-            'leg2_knee': self.leg2.knee.current_angle,
-            'leg2_ankle': self.leg2.ankle.current_angle,
-            'leg3_hip': self.leg3.hip.current_angle,
-            'leg3_knee': self.leg3.knee.current_angle,
-            'leg3_ankle': self.leg3.ankle.current_angle,
-            'leg4_hip': self.leg4.hip.current_angle,
-            'leg4_knee': self.leg4.knee.current_angle,
-            'leg4_ankle': self.leg4.ankle.current_angle,
+        storage["saved_positions"] = storage.get("saved_positions", {})
+        storage["saved_positions"][name] = {
+            "leg1_hip": self.leg1.hip.current_angle,
+            "leg1_knee": self.leg1.knee.current_angle,
+            "leg1_ankle": self.leg1.ankle.current_angle,
+            "leg2_hip": self.leg2.hip.current_angle,
+            "leg2_knee": self.leg2.knee.current_angle,
+            "leg2_ankle": self.leg2.ankle.current_angle,
+            "leg3_hip": self.leg3.hip.current_angle,
+            "leg3_knee": self.leg3.knee.current_angle,
+            "leg3_ankle": self.leg3.ankle.current_angle,
+            "leg4_hip": self.leg4.hip.current_angle,
+            "leg4_knee": self.leg4.knee.current_angle,
+            "leg4_ankle": self.leg4.ankle.current_angle,
         }
-    
+
     async def load_position(self, name: str, hard=False):
-        saved_positions = storage.get('saved_positions', {})
+        saved_positions = storage.get("saved_positions", {})
         position = saved_positions.get(name)
         if position:
             await self.set_servos(**position, hard=hard)
             log(f"Position {name} loaded")
         else:
             log(f"Position {name} not found")
+
 
 class Light:
     PWM_MAX = 65535

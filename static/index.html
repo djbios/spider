@@ -169,34 +169,36 @@
                     </select>
                     <button class="command-button btn btn-primary">Set display mode</button>
                 </div>
+                <label for="live-adjust">Live adjust</label>
+                <input type="checkbox" id="live-adjust">
                 <div class="command row" id="set-servos">
                     <div class="col">
                         <div class="row">
                             <h5>Leg 1</h5>
-                            <label for="leg1_hip"></label>
+                            <label for="leg1_hip">Hip</label>
                             <input type="range" id="leg1_hip" min="0" max="180" value="90" class="w-100 input-type-int"
                                 oninput="this.nextElementSibling.value = this.value">
                             <output>90</output>
-                            <label for="leg1_knee"></label>
+                            <label for="leg1_knee">Knee</label>
                             <input type="range" id="leg1_knee" min="0" max="180" value="90" class="w-100 input-type-int"
                                 oninput="this.nextElementSibling.value = this.value">
                             <output>90</output>
-                            <label for="leg1_ankle"></label>
+                            <label for="leg1_ankle">Ankle</label>
                             <input type="range" id="leg1_ankle" min="0" max="180" value="90"
                                 class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
                             <output>90</output>
                         </div>
                         <div class="row">
                             <h5>Leg 4</h5>
-                            <label for="leg4_hip"></label>
+                            <label for="leg4_hip">Hip</label>
                             <input type="range" id="leg4_hip" min="0" max="180" value="90" class="w-100 input-type-int"
                                 oninput="this.nextElementSibling.value = this.value">
                             <output>90</output>
-                            <label for="leg4_knee"></label>
+                            <label for="leg4_knee">Knee</label>
                             <input type="range" id="leg4_knee" min="0" max="180" value="90" class="w-100 input-type-int"
                                 oninput="this.nextElementSibling.value = this.value">
                             <output>90</output>
-                            <label for="leg4_ankle"></label>
+                            <label for="leg4_ankle">Ankle</label>
                             <input type="range" id="leg4_ankle" min="0" max="180" value="90"
                                 class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
                             <output>90</output>
@@ -205,38 +207,53 @@
                     <div class="col">
                         <div class="row">
                             <h5>Leg 2</h5>
-                            <label for="leg2_hip"></label>
+                            <label for="leg2_hip">Hip</label>
                             <input type="range" id="leg2_hip" min="0" max="180" value="90" class="w-100 input-type-int"
                                 oninput="this.nextElementSibling.value = this.value">
                             <output>90</output>
-                            <label for="leg2_knee"></label>
+                            <label for="leg2_knee">Knee</label>
                             <input type="range" id="leg2_knee" min="0" max="180" value="90" class="w-100 input-type-int"
                                 oninput="this.nextElementSibling.value = this.value">
                             <output>90</output>
-                            <label for="leg2_ankle"></label>
+                            <label for="leg2_ankle">Ankle</label>
                             <input type="range" id="leg2_ankle" min="0" max="180" value="90"
                                 class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
                             <output>90</output>
                         </div>
                         <div class="row">
                             <h5>Leg 3</h5>
-                            <label for="leg3_hip"></label>
+                            <label for="leg3_hip">Hip</label>
                             <input type="range" id="leg3_hip" min="0" max="180" value="90" class="w-100 input-type-int"
                                 oninput="this.nextElementSibling.value = this.value">
                             <output>90</output>
-                            <label for="leg3_knee"></label>
+                            <label for="leg3_knee">Knee</label>
                             <input type="range" id="leg3_knee" min="0" max="180" value="90" class="w-100 input-type-int"
                                 oninput="this.nextElementSibling.value = this.value">
                             <output>90</output>
-                            <label for="leg3_ankle"></label>
+                            <label for="leg3_ankle">Ankle</label>
                             <input type="range" id="leg3_ankle" min="0" max="180" value="90"
                                 class="w-100 input-type-int" oninput="this.nextElementSibling.value = this.value">
                             <output>90</output>
                         </div>
                     </div>
-                    <button class="command-button btn btn-primary">Set servos</button>
+                    <label for="hard">Hard</label>
+                    <input type="checkbox" id="hard" class="input-type-bool">
 
+                    <button class="command-button btn btn-primary">Set servos</button>
                 </div>
+                <div class="command row" id="save-position">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" class="w-100 input-type-str">
+                    <button class="command-button btn btn-primary" id="save-position">Save position to memory</button>
+                </div>
+                <div class="command row" id="load-position">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" class="w-100 input-type-str">
+                    <label for="hard">Hard</label>
+                    <input type="checkbox" id="hard" class="input-type-bool">
+                    <button class="command-button btn btn-primary" id="load-position">Load position from memory</button>
+                </div>
+
             </div>
             <div class="row">
                 <div class="col-md-12">
@@ -276,6 +293,8 @@
                             value = parseFloat(value); // Convert to float
                         } else if ($(this).hasClass('input-type-str')) {
                             value = String(value); // Convert to string
+                        } else if ($(this).hasClass('input-type-bool')) {
+                            value = $(this).prop('checked'); // Convert to boolean
                         }
 
                         params[id] = value; // Use id as the key and value as the value
@@ -297,6 +316,23 @@
                             console.log(data);
                         }
                     });
+                });
+                $('#live-adjust').on('change', function () {
+                    const liveAdjust = $(this).prop('checked');
+                    let sliders = $('#set-servos').find('input');
+                    let debounceTimer;
+
+                    if (liveAdjust) {
+                        sliders.on('input', function () {
+                            clearTimeout(debounceTimer);
+                            debounceTimer = setTimeout(function () {
+                                $('#set-servos').find('.command-button').click();
+                            }, 500);
+                        });
+                    } else {
+                        sliders.off('input');
+                        clearTimeout(debounceTimer);
+                    }
                 });
 
                 // Function to update stats table dynamically

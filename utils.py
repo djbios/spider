@@ -324,22 +324,53 @@ class Walker:
             leg4_ankle: int,
             hard=False, # TODO
     ):
-        self.leg1.hip.hard_move(leg1_hip)
-        self.leg1.knee.hard_move(leg1_knee)
-        self.leg1.ankle.hard_move(leg1_ankle)
+        if hard:
+            method = "hard_move"
+        else:
+            method = "move"
 
-        self.leg2.hip.hard_move(leg2_hip)
-        self.leg2.knee.hard_move(leg2_knee)
-        self.leg2.ankle.hard_move(leg2_ankle)
+        await run_callable_async_or_not(getattr(self.leg1.hip, method), angle=leg1_hip)
+        await run_callable_async_or_not(getattr(self.leg1.knee, method), angle=leg1_knee)
+        await run_callable_async_or_not(getattr(self.leg1.ankle, method), angle=leg1_ankle)
 
-        self.leg3.hip.hard_move(leg3_hip)
-        self.leg3.knee.hard_move(leg3_knee)
-        self.leg3.ankle.hard_move(leg3_ankle)
+        await run_callable_async_or_not(getattr(self.leg2.hip, method), angle=leg2_hip)
+        await run_callable_async_or_not(getattr(self.leg2.knee, method), angle=leg2_knee)
+        await run_callable_async_or_not(getattr(self.leg2.ankle, method), angle=leg2_ankle)
 
-        self.leg4.hip.hard_move(leg4_hip)
-        self.leg4.knee.hard_move(leg4_knee)
-        self.leg4.ankle.hard_move(leg4_ankle)
+        await run_callable_async_or_not(getattr(self.leg3.hip, method), angle=leg3_hip)
+        await run_callable_async_or_not(getattr(self.leg3.knee, method), angle=leg3_knee)
+        await run_callable_async_or_not(getattr(self.leg3.ankle, method), angle=leg3_ankle)
 
+        await run_callable_async_or_not(getattr(self.leg4.hip, method), angle=leg4_hip)
+        await run_callable_async_or_not(getattr(self.leg4.knee, method), angle=leg4_knee)
+        await run_callable_async_or_not(getattr(self.leg4.ankle, method), angle=leg4_ankle)
+        
+
+    def save_position(self, name: str):
+        storage['saved_positions'] = storage.get('saved_positions', {})
+        storage['saved_positions'][name] = {
+            'leg1_hip': self.leg1.hip.current_angle,
+            'leg1_knee': self.leg1.knee.current_angle,
+            'leg1_ankle': self.leg1.ankle.current_angle,
+            'leg2_hip': self.leg2.hip.current_angle,
+            'leg2_knee': self.leg2.knee.current_angle,
+            'leg2_ankle': self.leg2.ankle.current_angle,
+            'leg3_hip': self.leg3.hip.current_angle,
+            'leg3_knee': self.leg3.knee.current_angle,
+            'leg3_ankle': self.leg3.ankle.current_angle,
+            'leg4_hip': self.leg4.hip.current_angle,
+            'leg4_knee': self.leg4.knee.current_angle,
+            'leg4_ankle': self.leg4.ankle.current_angle,
+        }
+    
+    async def load_position(self, name: str, hard=False):
+        saved_positions = storage.get('saved_positions', {})
+        position = saved_positions.get(name)
+        if position:
+            await self.set_servos(**position, hard=hard)
+            log(f"Position {name} loaded")
+        else:
+            log(f"Position {name} not found")
 
 class Light:
     PWM_MAX = 65535

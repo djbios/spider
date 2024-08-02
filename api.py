@@ -69,4 +69,6 @@ commands = {
     "write-oled": display.write_text,
     "display-mode": display.set_mode,
     "set-servos": walker.set_servos,
+    "save-position": walker.save_position,
+    "load-position": walker.load_position,
 }

@@ -266,7 +266,7 @@
                     </div>
                     <div class="command row" id="load-position">
                         <label for="name">Name</label>
-                        <input type="text" id="name" class="w-100 input-type-str">
+                        <select type="text" id="name" class="w-100 input-type-str">
                         <label for="hard">Hard</label>
                         <input type="checkbox" id="hard" class="input-type-bool">
                         <button class="command-button btn btn-primary" id="load-position">Load position from
@@ -388,8 +388,27 @@
 
         // Set interval to fetch new logs every 2 seconds
         var logsIntervalId = window.setInterval(fetchLogs, 10000);
+
+
+        // Update saved positions dropdown
+        function updateSavedPositions(data) {
+            var select = $('#load-position').find('select');
+            select.empty(); // Clear existing options
+            for (const key in data){
+                var newOption = `<option value="${key}">${key}</option>`;
+                select.append(newOption);
+            }
+        }
+        
+        function fetchSavedPositions() {
+            $.get(`/api/saved-positions`, function (data) {
+                updateSavedPositions(data);
+            });
+        }
+        fetchSavedPositions();
+
     </script>
 </body>
 
 </html>
-<!-- TODO:  backsync angles to sliders, available poses. Better json storage view.-->
+<!-- TODO:  backsync angles to sliders. Better json storage view.-->

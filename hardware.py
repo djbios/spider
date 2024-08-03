@@ -1,5 +1,10 @@
 import pins
-from utils import Battery, Joint, Leg, Light, Walker, Accelerometr, Display
+from wrappers.battery import Battery
+from wrappers.walker import Walker, Leg, Joint
+from wrappers.light import Light
+from wrappers.display import Display, register_display_routine
+from wrappers.accelerometer import Accelerometr
+
 import pwmio
 import busio
 from adafruit_pca9685 import PCA9685
@@ -190,28 +195,4 @@ class SchedulerRoutine(BaseRoutine):
 
 # Display
 display = Display(128, 32, i2c)
-
-
-@RoutinesRegistry.register()
-class DisplayRoutine(BaseRoutine):
-    def __init__(self) -> None:
-        self.display = display
-        self.logs_deque = deque([], display.MAX_LINES)
-        super().__init__()
-
-    async def tick(self):
-        if self.display.mode == Display.MODE_LOGS:
-            new_lines = get_unsent_loglines("display", count=4)
-            if new_lines:
-                self.logs_deque.extend(new_lines)
-                self.display.writelines(list(self.logs_deque))
-        elif self.display.mode == Display.MODE_STATS:
-            lines = [
-                f"Bat: {battery.get_battery_percentage()}% {battery.get_battery_voltage()}V",
-                f"IP: {wifi.radio.ipv4_address}",
-                f"Accel: {accelerometer.xyz}",
-                f"Angles: {accelerometer.angles}",
-            ]
-            self.display.writelines(lines)
-            await asyncio.sleep(2)
-            
+register_display_routine(display, battery, wifi, accelerometer)

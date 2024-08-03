@@ -59,6 +59,13 @@ def logs(request: Request):
     logs = get_unsent_loglines('http')
     return JSONResponse(request, logs)
 
+@server.route("/api/servos-angles", GET)  
+def angles(request: Request):
+    return JSONResponse(request, walker.get_servos_angles())
+
+@server.route("/api/saved-positions", GET)
+def saved_positions(request: Request):
+    return JSONResponse(request, walker.get_saved_positions())
 
 commands = {
     "set-light-brightness": light.set_brightness,
@@ -68,7 +75,7 @@ commands = {
     "calibrate-zero": accelerometer.calibrate_zero,
     "write-oled": display.write_text,
     "display-mode": display.set_mode,
-    "set-servos": walker.set_servos,
+    "set-servos": walker.set_servos_angles,
     "save-position": walker.save_position,
     "load-position": walker.load_position,
 }

@@ -10,3 +10,5 @@ tests/
 setup.cfg
 __pycache__/
 .DS_Store
+.pytest_cache/
+.gitignore

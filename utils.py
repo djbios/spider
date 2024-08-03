@@ -1,3 +1,4 @@
+from collections import namedtuple
 import random
 import time
 from adafruit_motor import servo

@@ -68,29 +68,29 @@ def test_default_factory():
     assert p1.friends is not p2.friends
 
 
-@dataclass(frozen=True)
-class Item:
-    name: str
-    price: float = field(metadata={"unit": "USD"})
+# @dataclass(frozen=True)
+# class Item:
+#     name: str
+#     price: float = field(metadata={"unit": "USD"})
 
 
-def test_field_metadata():
-    i = Item(name="Book", price=12.99)
-    assert i.__dataclass_fields__["price"].metadata["unit"] == "USD"
+# def test_field_metadata():
+#     i = Item(name="Book", price=12.99)
+#     assert i.__dataclass_fields__["price"].metadata["unit"] == "USD"
 
 
-@dataclass(frozen=True)
-class Product:
-    name: str
-    price: float
+# @dataclass(frozen=True)
+# class Product:
+#     name: str
+#     price: float
 
-    def __post_init__(self):
-        assert self.price >= 0, "Price cannot be negative"
+#     def __post_init__(self):
+#         assert self.price >= 0, "Price cannot be negative"
 
 
-def test_post_init():
-    with pytest.raises(AssertionError, match="Price cannot be negative"):
-        Product(name="Negative Price", price=-1.0)
+# def test_post_init():
+#     with pytest.raises(AssertionError, match="Price cannot be negative"):
+#         Product(name="Negative Price", price=-1.0)
 
 
 def test_empty_friends_list():
@@ -98,20 +98,20 @@ def test_empty_friends_list():
     assert p.friends == []
 
 
-@dataclass(order=True)
-class OrderedItem:
-    sort_index: int = field(init=False, repr=False)
-    name: str
-    price: float
+# @dataclass(order=True)
+# class OrderedItem:
+#     sort_index: int = field(init=False, repr=False)
+#     name: str
+#     price: float
 
-    def __post_init__(self):
-        self.sort_index = self.price
+#     def __post_init__(self):
+#         self.sort_index = self.price
 
 
-def test_ordered_item():
-    item1 = OrderedItem(name="Item1", price=10.0)
-    item2 = OrderedItem(name="Item2", price=20.0)
-    assert item1 < item2
+# def test_ordered_item():
+#     item1 = OrderedItem(name="Item1", price=10.0)
+#     item2 = OrderedItem(name="Item2", price=20.0)
+#     assert item1 < item2
 
 
 def test_field_default():

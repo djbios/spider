@@ -406,6 +406,9 @@
             });
         }
         fetchSavedPositions();
+        $('#save-position button').on('release', function () {
+           fetchSavedPositions();
+        });
 
     </script>
 </body>

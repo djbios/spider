@@ -1,30 +1,26 @@
-import pins
-from wrappers.battery import Battery
-from wrappers.walker import Walker, Leg, Joint
-from wrappers.light import Light
-from wrappers.display import Display, register_display_routine
-from wrappers.accelerometer import Accelerometr
-
-import pwmio
-import busio
-from adafruit_pca9685 import PCA9685
 import os
 
 import adafruit_connection_manager
-import wifi
-
 import adafruit_requests
-from routines import RoutinesRegistry, BaseRoutine
+import busio
 import circuitpython_schedule as schedule
-from logging import log, get_unsent_loglines
-from collections import deque
-import asyncio
+import pwmio
+import wifi
 from adafruit_httpserver import (
     Server,
     Request,
     FileResponse,
 )
-from logging import log
+from adafruit_pca9685 import PCA9685
+
+import pins
+from logging_ import log
+from routines import RoutinesRegistry, BaseRoutine
+from wrappers.accelerometer import Accelerometr
+from wrappers.battery import Battery
+from wrappers.display import Display, register_display_routine
+from wrappers.light import Light
+from wrappers.walker import Walker, Leg, Joint
 
 DEFAULT_SPEED = 1000
 DEFAULT_ACCELERATION = 500
@@ -109,21 +105,25 @@ walker = Walker(
         hip=Joint(leg1_hip_ch, DEFAULT_SPEED, DEFAULT_ACCELERATION),
         knee=Joint(leg1_knee_ch, DEFAULT_SPEED, DEFAULT_ACCELERATION),
         ankle=Joint(leg1_ankle_ch, DEFAULT_SPEED, DEFAULT_ACCELERATION),
+        id=1,
     ),
     leg2=Leg(
         hip=Joint(leg2_hip_ch, DEFAULT_SPEED, DEFAULT_ACCELERATION),
         knee=Joint(leg2_knee_ch, DEFAULT_SPEED, DEFAULT_ACCELERATION),
         ankle=Joint(leg2_ankle_ch, DEFAULT_SPEED, DEFAULT_ACCELERATION),
+        id=2,
     ),
     leg3=Leg(
         hip=Joint(leg3_hip_ch, DEFAULT_SPEED, DEFAULT_ACCELERATION),
         knee=Joint(leg3_knee_ch, DEFAULT_SPEED, DEFAULT_ACCELERATION),
         ankle=Joint(leg3_ankle_ch, DEFAULT_SPEED, DEFAULT_ACCELERATION),
+        id=3,
     ),
     leg4=Leg(
         hip=Joint(leg4_hip_ch, DEFAULT_SPEED, DEFAULT_ACCELERATION),
         knee=Joint(leg4_knee_ch, DEFAULT_SPEED, DEFAULT_ACCELERATION),
         ankle=Joint(leg4_ankle_ch, DEFAULT_SPEED, DEFAULT_ACCELERATION),
+        id=4,
     ),
 )
 walker.apply_calibration(WALKER_CALIBRATION_ANGLES)

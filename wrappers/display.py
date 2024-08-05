@@ -1,4 +1,4 @@
-from logging import log, get_unsent_loglines
+from logging_ import log, get_unsent_loglines
 import adafruit_ssd1306
 from routines import BaseRoutine, RoutinesRegistry
 from collections import deque

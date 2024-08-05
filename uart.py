@@ -1,7 +1,7 @@
 import busio
 import pins
 from routines import BaseRoutine, RoutinesRegistry
-from logging import log
+from logging_ import log
 
 @RoutinesRegistry.register()
 class UARTRoutine(BaseRoutine):

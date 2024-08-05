@@ -1,7 +1,4 @@
 import asyncio
-from hardware import battery, accelerometer, walker
-from flash_storage import storage
-from routines import RoutinesRegistry
 import time
 
 # # Discovery

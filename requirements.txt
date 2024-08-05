@@ -1,0 +1,8 @@
+circuitpython-stubs
+adafruit-circuitpython-pca9685
+adafruit-circuitpython-requests
+circuitpython-schedule
+adafruit-circuitpython-httpserver
+adafruit-circuitpython-adxl34x
+adafruit-circuitpython-ssd1306
+adafruit-circuitpython-motor

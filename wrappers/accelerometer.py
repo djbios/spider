@@ -2,7 +2,7 @@ import time
 import adafruit_adxl34x
 import math
 from flash_storage import storage
-from logging import log
+from logging_ import log
 
 
 class Accelerometr(adafruit_adxl34x.ADXL345):

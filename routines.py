@@ -1,5 +1,5 @@
 import asyncio
-from logging import log
+from logging_ import log
 
 class BaseRoutine:
     async def tick(self):

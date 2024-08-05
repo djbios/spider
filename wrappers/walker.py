@@ -6,9 +6,10 @@ from routines import RoutinesRegistry, BaseRoutine
 import asyncio
 from adafruit_pca9685 import PWMChannel
 from flash_storage import storage
-from logging import log
+from logging_ import log
 
 from utils import run_callable_async_or_not
+import math
 
 
 class SmoothServo:
@@ -115,14 +116,6 @@ class SmoothServo:
         else:
             self.stop()
 
-    def _sign(self, value):
-        if value > 0:
-            return 1
-        elif value < 0:
-            return -1
-        else:
-            return 0
-
     def start(self):
         self.current_movement = (self.current_angle, self.target_angle)
         self.last_update_time = time.monotonic()
@@ -183,16 +176,55 @@ class Joint(SmoothServo):
             await asyncio.sleep(0.01)
 
 
-class Leg:
-    def __init__(self, hip: Joint, knee: Joint, ankle: Joint, leg_config=None):
-        self.x = 0.0
-        self.y = 0.0
-        self.z = 0.0
-        self.leg_config = leg_config
+KEEP = object()
+# Constants for the robot's physical dimensions
+length_a = 55
+length_b = 77.5
+length_c = 27.5
+length_side = 71
+z_absolute = -28
 
+# Constants for movement
+z_default = -50
+z_up = -30
+z_boot = z_absolute
+x_default = 62
+x_offset = 0
+y_start = 0
+y_step = 40
+y_default = x_default
+
+# Movement speeds
+spot_turn_speed = 4
+leg_move_speed = 8
+body_move_speed = 3
+stand_seat_speed = 1
+
+
+class Leg:
+    def __init__(self, hip: Joint, knee: Joint, ankle: Joint, id):
         self.hip = hip
         self.knee = knee
         self.ankle = ankle
+        if id == 1:
+            self.x = x_default - x_offset
+            self.y = y_start + y_step
+            self.z = z_boot
+        if id == 2:
+            self.x = x_default - x_offset
+            self.y = y_start + y_step
+            self.z = z_boot
+        if id == 3:
+            self.x = x_default + x_offset
+            self.y = y_start
+            self.z = z_boot
+        if id == 4:
+            self.x = x_default + x_offset
+            self.y = y_start
+            self.z = z_boot
+        
+        self.id = id
+
         log("Leg initialized")
 
     async def move(
@@ -208,112 +240,179 @@ class Leg:
 
         await asyncio.gather(*tasks)
 
-    async def move_linear(self, dx: float, dy: float, dz: float):
-        leg_config = self.leg_config
-        initial_x = self.x
-        initial_y = self.y
-        initial_z = self.z
+    def set_site(self, x, y, z):
+        alpha, beta, gamma = self.cartesian_to_polar(x, y, z)
+        self.polar_to_servo(alpha, beta, gamma)
 
-        hip_angle, knee_angle, ankle_angle = linear_move_to_angles(
-            leg_config, initial_x, initial_y, initial_z, dx, dy, dz
+    def linear_test(self):
+        """ Test the linear movement of the leg 
+        Move the leg in a linear path in the x, y, and z directions
+        """
+        self.set_site(self.x+10, self.y, self.z)
+        time.sleep(1)
+        self.set_site(self.x-20, self.y, self.z)
+        time.sleep(1)
+        self.set_site(self.x+10, self.y, self.z)
+
+        self.set_site(self.x, self.y+10, self.z)
+        time.sleep(1)
+        self.set_site(self.x, self.y-20, self.z)
+        time.sleep(1)
+        self.set_site(self.x, self.y+10, self.z)
+        
+        self.set_site(self.x, self.y, self.z+10)
+        time.sleep(1)
+        self.set_site(self.x, self.y, self.z-20)
+        time.sleep(1)
+        self.set_site(self.x, self.y, self.z+10)
+
+
+    def cartesian_to_polar(self, x, y, z):
+        w = (x >= 0 and 1 or -1) * math.sqrt(x**2 + y**2)
+        v = w - length_c
+        alpha = math.atan2(z, v) + math.acos(
+            (length_a**2 - length_b**2 + v**2 + z**2)
+            / (2 * length_a * math.sqrt(v**2 + z**2))
         )
-
-        self.x = dx
-        self.y = dy
-        self.z = dz
-        self.move(hip_angle, knee_angle, ankle_angle)
-
-
-LegConfig = namedtuple("LegConfig", ["hip_sign", "knee_sign", "ankle_sign", "is_left"])
-
-
-def linear_move_to_angles(
-    leg_config: LegConfig,
-    initial_x: float,
-    initial_y: float,
-    initial_z: float,
-    initial_hip_angle: int,
-    initial_knee_angle: int,
-    initial_ankle_angle: int,
-    x_abs: float,
-    y_abs: float,
-    z_abs: float,
-    lc: float,
-    lf: float,
-    lt: float,
-) -> tuple[int, int, int]:
-    from math import acos, cos, sin, pi, sqrt, degrees
-
-    # Diffs of angles relative to the zero position
-    hip_angle0 = (initial_hip_angle - 90) * leg_config.hip_sign
-    knee_angle0 = (initial_knee_angle - 90) * leg_config.knee_sign
-    ankle_angle0 = (initial_ankle_angle - 90) * leg_config.ankle_sign
-    print(f"{hip_angle0=}, {knee_angle0=}, {ankle_angle0=}")
-
-    dx = (x_abs - initial_x) * (1 if leg_config.is_left else -1)
-    dy = y_abs - initial_y
-    dz = z_abs - initial_z
-    print(f"{dx=}, {dy=}, {dz=}")
-
-    # Coords of calcaneus in new coordinate system (with zero in hip joint)
-    x0 = (
-        lc + lf * cos(knee_angle0) + lt * sin(knee_angle0 + ankle_angle0)
-    ) * sin(hip_angle0)
-    y0 = (
-        lc + lf * cos(knee_angle0) + lt * sin(knee_angle0 + ankle_angle0)
-    ) * cos(hip_angle0)
-    z0 = lf * sin(knee_angle0) + lt * cos(knee_angle0 + ankle_angle0)
-
-    print(f"x0: {x0}, y0: {y0}, z0: {z0}")
-
-    # Calculate hip rotation
-    # Coords of calcaneus in new coordinate system (with zero in hip joint)
-    xn = x0 + dx
-    yn = y0 + dy
-    zn = z0 + dz
-
-    print(f"xn: {xn}, yn: {yn}, zn: {zn}")
-    if dx == 0 and dy == 0:
-        d_alfa_coxa = 0
-    else:
-        d_alfa_coxa = acos(
-            (x0 * xn + y0 * yn) / (sqrt(x0**2 + y0**2) * sqrt(xn**2 + yn**2))
+        beta = math.acos(
+            (length_a**2 + length_b**2 - v**2 - z**2) / (2 * length_a * length_b)
         )
+        gamma = math.atan2(y, x) if w >= 0 else math.atan2(-y, -x)
 
-    d_alfa_coxa_degrees = degrees(d_alfa_coxa) * leg_config.hip_sign
+        alpha = alpha / math.pi * 180
+        beta = beta / math.pi * 180
+        gamma = gamma / math.pi * 180
 
-    print(f"d_alfa_coxa: {d_alfa_coxa_degrees}")
+        return alpha, beta, gamma
 
-    # Calculate knee and ankle rotation
-    x1 = x0
-    y1 = y0
-    z1 = z0
-    print(f"x1: {x1}, y1: {y1}, z1: {z1}")
+    def polar_to_servo(self, alpha, beta, gamma):
+        if self.id == 1:
+            alpha = 90 - alpha
+            beta = beta
+            gamma += 90
+        elif self.id == 2:
+            alpha += 90
+            beta = 180 - beta
+            gamma = 90 - gamma
+        elif self.id == 3:
+            alpha += 90
+            beta = 180 - beta
+            gamma = 90 - gamma
+        elif self.id == 4:
+            alpha = 90 - alpha
+            beta = beta
+            gamma += 90
+        self.hip.hard_move(alpha)
+        self.knee.hard_move(beta)
+        self.ankle.hard_move(gamma)
+        
 
-    xn1 = xn * cos(d_alfa_coxa) - yn * sin(d_alfa_coxa)
-    yn1 = xn * sin(d_alfa_coxa) + yn * cos(d_alfa_coxa)
-    zn1 = zn
-    print(f"xn1: {xn1}, yn1: {yn1}, zn1: {zn1}")
+    # async def move_linear(self, dx: float, dy: float, dz: float):
+    #     leg_config = self.leg_config
+    #     initial_x = self.x
+    #     initial_y = self.y
+    #     initial_z = self.z
 
-    d_alfa = acos(
-        (y1 * yn1 + z1 * zn1) / (sqrt(y1**2 + z1**2) * sqrt(yn1**2 + zn1**2))
-    )
-    # d_range = sqrt(yn1**2 + zn1**2) - sqrt(y1**2 + z1**2)
-    d_range = yn1 - y1
+    #     hip_angle, knee_angle, ankle_angle = linear_move_to_angles(
+    #         leg_config, initial_x, initial_y, initial_z, dx, dy, dz
+    #     )
 
-    print(f"{d_alfa=}, {d_range=}")
-    
+    #     self.x = dx
+    #     self.y = dy
+    #     self.z = dz
+    #     self.move(hip_angle, knee_angle, ankle_angle)
 
-    # print(f"{d_knee1_degrees=}, {d_ankle1_degrees=}")
-    # print(f"{d_knee2_degrees=}, {d_ankle2_degrees=}")
 
-    # alfa_coxa = math.acos(
-    #     (dx * initial_x + dy * initial_y)
-    #     / (math.sqrt(initial_x**2 + initial_y**2) * math.sqrt(dx**2 + dy**2))
-    # )
-    # hip = initial_hip_angle + alfa_coxa
+# LegConfig = namedtuple("LegConfig", ["hip_sign", "knee_sign", "ankle_sign", "is_left"])
 
-    # return hip, ..., ...
+
+# def linear_move_to_angles(
+#     leg_config: LegConfig,
+#     initial_x: float,
+#     initial_y: float,
+#     initial_z: float,
+#     initial_hip_angle: int,
+#     initial_knee_angle: int,
+#     initial_ankle_angle: int,
+#     x_abs: float,
+#     y_abs: float,
+#     z_abs: float,
+#     lc: float,
+#     lf: float,
+#     lt: float,
+# ) -> tuple[int, int, int]:
+#     from math import acos, cos, sin, pi, sqrt, degrees
+
+#     # Diffs of angles relative to the zero position
+#     hip_angle0 = (initial_hip_angle - 90) * leg_config.hip_sign
+#     knee_angle0 = (initial_knee_angle - 90) * leg_config.knee_sign
+#     ankle_angle0 = (initial_ankle_angle - 90) * leg_config.ankle_sign
+#     print(f"{hip_angle0=}, {knee_angle0=}, {ankle_angle0=}")
+
+#     dx = (x_abs - initial_x) * (1 if leg_config.is_left else -1)
+#     dy = y_abs - initial_y
+#     dz = z_abs - initial_z
+#     print(f"{dx=}, {dy=}, {dz=}")
+
+#     # Coords of calcaneus in new coordinate system (with zero in hip joint)
+#     x0 = (
+#         lc + lf * cos(knee_angle0) + lt * sin(knee_angle0 + ankle_angle0)
+#     ) * sin(hip_angle0)
+#     y0 = (
+#         lc + lf * cos(knee_angle0) + lt * sin(knee_angle0 + ankle_angle0)
+#     ) * cos(hip_angle0)
+#     z0 = lf * sin(knee_angle0) + lt * cos(knee_angle0 + ankle_angle0)
+
+#     print(f"x0: {x0}, y0: {y0}, z0: {z0}")
+
+#     # Calculate hip rotation
+#     # Coords of calcaneus in new coordinate system (with zero in hip joint)
+#     xn = x0 + dx
+#     yn = y0 + dy
+#     zn = z0 + dz
+
+#     print(f"xn: {xn}, yn: {yn}, zn: {zn}")
+#     if dx == 0 and dy == 0:
+#         d_alfa_coxa = 0
+#     else:
+#         d_alfa_coxa = acos(
+#             (x0 * xn + y0 * yn) / (sqrt(x0**2 + y0**2) * sqrt(xn**2 + yn**2))
+#         )
+
+#     d_alfa_coxa_degrees = degrees(d_alfa_coxa) * leg_config.hip_sign
+
+#     print(f"d_alfa_coxa: {d_alfa_coxa_degrees}")
+
+#     # Calculate knee and ankle rotation
+#     x1 = x0
+#     y1 = y0
+#     z1 = z0
+#     print(f"x1: {x1}, y1: {y1}, z1: {z1}")
+
+#     xn1 = xn * cos(d_alfa_coxa) - yn * sin(d_alfa_coxa)
+#     yn1 = xn * sin(d_alfa_coxa) + yn * cos(d_alfa_coxa)
+#     zn1 = zn
+#     print(f"xn1: {xn1}, yn1: {yn1}, zn1: {zn1}")
+
+#     d_alfa = acos(
+#         (y1 * yn1 + z1 * zn1) / (sqrt(y1**2 + z1**2) * sqrt(yn1**2 + zn1**2))
+#     )
+#     # d_range = sqrt(yn1**2 + zn1**2) - sqrt(y1**2 + z1**2)
+#     d_range = yn1 - y1
+
+#     print(f"{d_alfa=}, {d_range=}")
+
+
+# print(f"{d_knee1_degrees=}, {d_ankle1_degrees=}")
+# print(f"{d_knee2_degrees=}, {d_ankle2_degrees=}")
+
+# alfa_coxa = math.acos(
+#     (dx * initial_x + dy * initial_y)
+#     / (math.sqrt(initial_x**2 + initial_y**2) * math.sqrt(dx**2 + dy**2))
+# )
+# hip = initial_hip_angle + alfa_coxa
+
+# return hip, ..., ...
 
 
 class Walker:

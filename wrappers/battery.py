@@ -1,5 +1,5 @@
 import analogio
-from logging import log
+from logging_ import log
 
 VOLTAGE_MULTIPLIER = 0.0002985503
 BATTERY_MAX_VOLTAGE = 12.6

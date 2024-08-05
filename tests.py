@@ -1,5 +1,5 @@
 import time
-from logging import log
+from logging_ import log
 
 def light_test():
     from hardware import light

@@ -5,7 +5,7 @@ from tests import leg_test
 from routines import RoutinesRegistry, BaseRoutine
 from utils import run_callable_async_or_not
 from flash_storage import storage
-from logging import log, get_unsent_loglines
+from logging_ import log, get_unsent_loglines
 
 
 @RoutinesRegistry.register()

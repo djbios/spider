@@ -1,6 +1,6 @@
 import storage as cp_storage
 import json
-from logging import log
+from logging_ import log
 
 class Storage(dict):
     def __init__(self, filename='data.json'):

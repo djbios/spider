@@ -38,8 +38,8 @@ FIGURE_SIZE = (10, 10)
 AX_LIMIT = [-50, 50]
 
 # Physical constants
-# BODY_LENGTH = 20
-# BODY_WIDTH = 20
+BODY_LENGTH = 20
+BODY_WIDTH = 20
 
 leg1 = Chain(
     name="leg1",
@@ -83,22 +83,22 @@ leg2 = Chain(
             name="hip",
             bounds=(math.radians(0), math.radians(180)),
             origin_translation=[-10, -10, 0],  # Mirrored x-coordinate
-            origin_orientation=[0, 0, math.radians(90)],  # Mirrored z-rotation
-            rotation=[0, 0, -1],  # Mirrored z-rotation axis
+            origin_orientation=[0, 0, math.radians(-90)],  # Mirrored z-rotation
+            rotation=[0, 0, 1],  # Mirrored z-rotation axis
         ),
         URDFLink(
             name="knee",
             bounds=(math.radians(0), math.radians(180)),
             origin_translation=[-10, 0, 0],  # Mirrored x-coordinate
-            origin_orientation=[0, math.radians(180), 0],
-            rotation=[0, 1, 0],  # Mirrored y-rotation axis
+            origin_orientation=[0, math.radians(0), 0],
+            rotation=[0, -1, 0],  # Mirrored y-rotation axis
         ),
         URDFLink(
             name="ankle",
             bounds=(math.radians(0), math.radians(180)),
             origin_translation=[0, 0, 10],
-            origin_orientation=[0, math.radians(90), 0],  # Mirrored y-rotation
-            rotation=[0, -1, 0],  # Mirrored y-rotation axis
+            origin_orientation=[0, math.radians(-90), 0],  # Mirrored y-rotation
+            rotation=[0, 1, 0],  # Mirrored y-rotation axis
         ),
         URDFLink(
             name="pyatka",

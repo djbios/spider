@@ -19,12 +19,12 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 # Drawing constants
-X_MIN = -50
-X_MAX = 50
-Y_MIN = -50
-Y_MAX = 50
-Z_MIN = -50
-Z_MAX = 50
+X_MIN = -200
+X_MAX = 200
+Y_MIN = -200
+Y_MAX = 200
+Z_MIN = -100
+Z_MAX = 100
 ANGLE_MIN = 0
 ANGLE_MAX = 180
 INITIAL_X = 30
@@ -35,11 +35,16 @@ INITIAL_KNEE_ANGLE = 90
 INITIAL_ANKLE_ANGLE = 90
 DEBOUNCE_DELAY = 300  # ms
 FIGURE_SIZE = (10, 10)
-AX_LIMIT = [-50, 50]
+AX_LIMIT = [-200, 200]
 
 # Physical constants
-BODY_LENGTH = 20
-BODY_WIDTH = 20
+BODY_LENGTH = 71  # Y
+BODY_WIDTH = 71  # X
+KNEE_SHIFT_X = 27.43
+KNEE_SHIFT_Y = 20
+ANKLE_SHIFT_X = 55
+PYATKA_SHIFT_Y = 18
+PYATKA_SHIFT_Z = 80
 
 leg1 = Chain(
     name="leg1",
@@ -48,27 +53,27 @@ leg1 = Chain(
         URDFLink(
             name="hip",
             bounds=(math.radians(0), math.radians(180)),
-            origin_translation=[10, -10, 0],
+            origin_translation=[BODY_WIDTH / 2, -BODY_LENGTH / 2, 0],
             origin_orientation=[0, 0, math.radians(-90)],
             rotation=[0, 0, 1],
         ),
         URDFLink(
             name="knee",
             bounds=(math.radians(0), math.radians(180)),
-            origin_translation=[10, 0, 0],
+            origin_translation=[KNEE_SHIFT_X, -KNEE_SHIFT_Y, 0],
             origin_orientation=[0, math.radians(180), 0],
             rotation=[0, -1, 0],
         ),
         URDFLink(
             name="ankle",
             bounds=(math.radians(0), math.radians(180)),
-            origin_translation=[0, 0, 10],
+            origin_translation=[0, 0, ANKLE_SHIFT_X],
             origin_orientation=[0, math.radians(-90), 0],
             rotation=[0, 1, 0],
         ),
         URDFLink(
             name="pyatka",
-            origin_translation=[10, 0, 0],
+            origin_translation=[PYATKA_SHIFT_Z, PYATKA_SHIFT_Y, 0],
             origin_orientation=[0, 0, 0],
             rotation=[1, 0, 0],
         ),
@@ -82,29 +87,29 @@ leg2 = Chain(
         URDFLink(
             name="hip",
             bounds=(math.radians(0), math.radians(180)),
-            origin_translation=[-10, -10, 0],  # Mirrored x-coordinate
-            origin_orientation=[0, 0, math.radians(-90)],  # Mirrored z-rotation
-            rotation=[0, 0, 1],  # Mirrored z-rotation axis
+            origin_translation=[-BODY_WIDTH / 2, -BODY_LENGTH / 2, 0],
+            origin_orientation=[0, 0, math.radians(-90)],
+            rotation=[0, 0, 1],
         ),
         URDFLink(
             name="knee",
             bounds=(math.radians(0), math.radians(180)),
-            origin_translation=[-10, 0, 0],  # Mirrored x-coordinate
+            origin_translation=[-KNEE_SHIFT_X, -KNEE_SHIFT_Y, 0],
             origin_orientation=[0, math.radians(0), 0],
-            rotation=[0, -1, 0],  # Mirrored y-rotation axis
+            rotation=[0, -1, 0],
         ),
         URDFLink(
             name="ankle",
             bounds=(math.radians(0), math.radians(180)),
-            origin_translation=[0, 0, 10],
-            origin_orientation=[0, math.radians(-90), 0],  # Mirrored y-rotation
-            rotation=[0, 1, 0],  # Mirrored y-rotation axis
+            origin_translation=[0, 0, ANKLE_SHIFT_X],
+            origin_orientation=[0, math.radians(-90), 0],
+            rotation=[0, 1, 0],
         ),
         URDFLink(
             name="pyatka",
-            origin_translation=[-10, 0, 0],  # Mirrored x-coordinate
+            origin_translation=[-PYATKA_SHIFT_Z, PYATKA_SHIFT_Y, 0],
             origin_orientation=[0, 0, 0],
-            rotation=[-1, 0, 0],  # Mirrored x-rotation axis
+            rotation=[-1, 0, 0],
         ),
     ],
 )
@@ -290,6 +295,34 @@ class IKLegGUI(QWidget):
         self.setWindowTitle("Vintik simulator GUI")
 
         self.update_legs()
+        self.canvas.mpl_connect("scroll_event", self.zoom)
+
+    def zoom(self, event):
+        base_scale = 1.1
+        if event.button == "up":
+            scale_factor = 1 / base_scale
+        elif event.button == "down":
+            scale_factor = base_scale
+        else:
+            scale_factor = 1
+
+        cur_xlim = self.ax.get_xlim3d()
+        cur_ylim = self.ax.get_ylim3d()
+        cur_zlim = self.ax.get_zlim3d()
+
+        xdata = (cur_xlim[0] + cur_xlim[1]) / 2
+        ydata = (cur_ylim[0] + cur_ylim[1]) / 2
+        zdata = (cur_zlim[0] + cur_zlim[1]) / 2
+
+        new_xlim = [xdata - (xdata - cur_xlim[0]) * scale_factor, xdata + (cur_xlim[1] - xdata) * scale_factor]
+        new_ylim = [ydata - (ydata - cur_ylim[0]) * scale_factor, ydata + (cur_ylim[1] - ydata) * scale_factor]
+        new_zlim = [zdata - (zdata - cur_zlim[0]) * scale_factor, zdata + (cur_zlim[1] - zdata) * scale_factor]
+
+        self.ax.set_xlim3d(new_xlim)
+        self.ax.set_ylim3d(new_ylim)
+        self.ax.set_zlim3d(new_zlim)
+
+        self.canvas.draw_idle()
 
     def update_legs(self):
         self.ax.cla()

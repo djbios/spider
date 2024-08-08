@@ -26,30 +26,23 @@ DEFAULT_SPEED = 1000
 DEFAULT_ACCELERATION = 500
 
 WALKER_CALIBRATION_ANGLES = {
-    "leg1": {
-        "hip": 105,
-        "knee": 95,
-        "ankle": 85,
-    },
-    "leg2": {
-        "hip": 95,
-        "knee": 105,
-        "ankle": 85,
-    },
-    "leg3": {
-        "hip": 100,
-        "knee": 90,
-        "ankle": 90,
-    },
-    "leg4": {
-        "hip": 102,
-        "knee": 90,
-        "ankle": 105,
-    },
+    "leg1_hip": 122,
+    "leg1_knee": 105,
+    "leg1_ankle": 92,
+    "leg2_hip": 110,
+    "leg2_knee": 117,
+    "leg2_ankle": 98,
+    "leg3_hip": 115,
+    "leg3_knee": 99,
+    "leg3_ankle": 106,
+    "leg4_hip": 109,
+    "leg4_knee": 105,
+    "leg4_ankle": 104,
 }
 
+
 WALKER_CALIBRATED_HARD_LIMITS = {
-    "leg_3_knee_min": 0,
+    "leg_3_knee_min": 0,  # TODO fix naming mess
     "leg_0_knee_max": 176,
     "leg_1_ankle_min": 13,
     "leg_2_ankle_min": 0,

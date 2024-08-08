@@ -66,15 +66,8 @@ class SmoothServo:
 
         err = movement_to - self.current_angle
         if abs(err) > 0.1:
-            this_dir = self.speed ** 2 / self.acceleration / 2.0 >= abs(
-                err
-            )  # Time to decelerate
-            self.speed += (
-                    self.acceleration
-                    * delta_time
-                    * (-1 if this_dir else 1)
-                    * (1 if err > 0 else -1)
-            )
+            this_dir = self.speed**2 / self.acceleration / 2.0 >= abs(err)  # Time to decelerate
+            self.speed += self.acceleration * delta_time * (-1 if this_dir else 1) * (1 if err > 0 else -1)
             self.speed = max(-self.max_speed, min(self.speed, self.max_speed))
 
             step = self.speed * delta_time
@@ -122,14 +115,21 @@ class SmoothServo:
 
     def hard_move(self, angle):
         self.set_servo_angle(angle)
+        self.current_angle = angle
 
     def set_servo_angle(self, angle):
+        if angle < self.min_angle:
+            print(f"Target angle {angle} is less than min angle {self.min_angle}")
+            return
+        if angle > self.max_angle:
+            print(f"Target angle {angle} is more than max angle {self.max_angle}")
+            return
         calibrated_angle = angle + self.mid_angle - 90
         self._servo.angle = calibrated_angle
 
     def apply_calibration(self, mid_angle):
         self.mid_angle = mid_angle
-        # self.set_servo_angle(self.current_angle)
+        self.set_servo_angle(self.current_angle)
 
 
 @RoutinesRegistry.register()
@@ -202,34 +202,14 @@ class Leg:
         self.x = 0
         self.y = 0
         self.z = 0
-        # if id == 1:
-        #     self.set_site(x_default - x_offset, y_start + y_step, z_boot)
-        #     # self.x = x_default - x_offset
-        #     # self.y = y_start + y_step
-        #     # self.z = z_boot
-        # if id == 2:
-        #     self.set_site(x_default - x_offset, y_start + y_step, z_boot)
-        #     # self.x = x_default - x_offset
-        #     # self.y = y_start + y_step
-        #     # self.z = z_boot
-        # if id == 3:
-        #     self.set_site(x_default + x_offset, y_start, z_boot)
-        #     # self.x = x_default + x_offset
-        #     # self.y = y_start
-        #     # self.z = z_boot
-        # if id == 4:
-        #     self.set_site(x_default + x_offset, y_start, z_boot)
-        #     # self.x = x_default + x_offset
-        #     # self.y = y_start
-        #     # self.z = z_boot
 
         log("Leg initialized")
 
     async def move(
-            self,
-            hip: float,
-            knee: float,
-            ankle: float,
+        self,
+        hip: float,
+        knee: float,
+        ankle: float,
     ):
         tasks = []
         tasks.append(self.hip.move(hip))
@@ -254,15 +234,12 @@ class Leg:
         return self.polar_to_servo(beta, alpha, gamma)
 
     def cartesian_to_polar(self, x, y, z):
-        w = (x >= 0 and 1 or -1) * math.sqrt(x ** 2 + y ** 2)
+        w = (x >= 0 and 1 or -1) * math.sqrt(x**2 + y**2)
         v = w - length_c
         alpha = math.atan2(z, v) + math.acos(
-            (length_a ** 2 - length_b ** 2 + v ** 2 + z ** 2)
-            / (2 * length_a * math.sqrt(v ** 2 + z ** 2))
+            (length_a**2 - length_b**2 + v**2 + z**2) / (2 * length_a * math.sqrt(v**2 + z**2))
         )
-        beta = math.acos(
-            (length_a ** 2 + length_b ** 2 - v ** 2 - z ** 2) / (2 * length_a * length_b)
-        )
+        beta = math.acos((length_a**2 + length_b**2 - v**2 - z**2) / (2 * length_a * length_b))
         gamma = math.atan2(y, x) if w >= 0 else math.atan2(-y, -x)
 
         alpha = alpha / math.pi * 180
@@ -291,7 +268,7 @@ class Leg:
         return alpha, beta, gamma
 
     def linear_test(self):
-        """ Test the linear movement of the leg
+        """Test the linear movement of the leg
         Move the leg in a linear path in the x, y, and z directions
         """
         self.set_site(self.x + 10, self.y, self.z)
@@ -459,11 +436,12 @@ class Walker:
             await leg.move(90, 90, 90)
         log("To zero done")
 
-    def apply_calibration(self, values: dict[str, dict[str, int]]):
+    def apply_calibration(self, values: dict[str, int]):
         for i, leg in enumerate(self.legs, start=1):
             for joint_name in ["hip", "knee", "ankle"]:
                 joint = getattr(leg, joint_name)
-                joint.apply_calibration(values[f"leg{i}"][joint_name])
+                value = values[f"leg{i}_{joint_name}"]
+                joint.apply_calibration(value)
         log("Calibration applied")
 
     def find_hard_limits(walker):
@@ -510,20 +488,20 @@ class Walker:
         log("Hard limits set")
 
     async def set_servos_angles(
-            self,
-            leg1_hip: int,
-            leg1_knee: int,
-            leg1_ankle: int,
-            leg2_hip: int,
-            leg2_knee: int,
-            leg2_ankle: int,
-            leg3_hip: int,
-            leg3_knee: int,
-            leg3_ankle: int,
-            leg4_hip: int,
-            leg4_knee: int,
-            leg4_ankle: int,
-            hard=False,  # TODO
+        self,
+        leg1_hip: int,
+        leg1_knee: int,
+        leg1_ankle: int,
+        leg2_hip: int,
+        leg2_knee: int,
+        leg2_ankle: int,
+        leg3_hip: int,
+        leg3_knee: int,
+        leg3_ankle: int,
+        leg4_hip: int,
+        leg4_knee: int,
+        leg4_ankle: int,
+        hard=False,  # TODO
     ):
         if hard:
             method = "hard_move"
@@ -533,24 +511,16 @@ class Walker:
         coroutines = [
             run_callable_async_or_not(getattr(self.leg1.hip, method), angle=leg1_hip),
             run_callable_async_or_not(getattr(self.leg1.knee, method), angle=leg1_knee),
-            run_callable_async_or_not(
-                getattr(self.leg1.ankle, method), angle=leg1_ankle
-            ),
+            run_callable_async_or_not(getattr(self.leg1.ankle, method), angle=leg1_ankle),
             run_callable_async_or_not(getattr(self.leg2.hip, method), angle=leg2_hip),
             run_callable_async_or_not(getattr(self.leg2.knee, method), angle=leg2_knee),
-            run_callable_async_or_not(
-                getattr(self.leg2.ankle, method), angle=leg2_ankle
-            ),
+            run_callable_async_or_not(getattr(self.leg2.ankle, method), angle=leg2_ankle),
             run_callable_async_or_not(getattr(self.leg3.hip, method), angle=leg3_hip),
             run_callable_async_or_not(getattr(self.leg3.knee, method), angle=leg3_knee),
-            run_callable_async_or_not(
-                getattr(self.leg3.ankle, method), angle=leg3_ankle
-            ),
+            run_callable_async_or_not(getattr(self.leg3.ankle, method), angle=leg3_ankle),
             run_callable_async_or_not(getattr(self.leg4.hip, method), angle=leg4_hip),
             run_callable_async_or_not(getattr(self.leg4.knee, method), angle=leg4_knee),
-            run_callable_async_or_not(
-                getattr(self.leg4.ankle, method), angle=leg4_ankle
-            ),
+            run_callable_async_or_not(getattr(self.leg4.ankle, method), angle=leg4_ankle),
         ]
         await asyncio.gather(*[asyncio.create_task(c) for c in coroutines])
 

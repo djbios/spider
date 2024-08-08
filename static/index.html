@@ -266,7 +266,7 @@
                     </div>
                     <div class="command row" id="load-position">
                         <label for="name">Name</label>
-                        <select type="text" id="name" class="w-100 input-type-str">
+                        <select type="text" id="name" class="w-100 input-type-str"> </select>
                         <label for="hard">Hard</label>
                         <input type="checkbox" id="hard" class="input-type-bool">
                         <button class="command-button btn btn-primary" id="load-position">Load position from
@@ -279,6 +279,19 @@
 
     <script>
         $(document).ready(function () {
+            const ranges = $('input[type="range"]');
+            ranges.each(function () {
+                $(this).on('wheel', function (e) {
+                    e.preventDefault();
+                    const delta = e.originalEvent.deltaY;
+                    const step = parseInt($(this).attr('step'), 10) || 1;
+                    const value = parseInt($(this).val(), 10);
+                    const newValue = delta > 0 ? value - step : value + step;
+                    $(this).val(newValue).trigger('input');
+                });
+            });
+
+
             $('#cameraIp').on('change', function () {
                 const camIp = $(this).val();
                 $('#camera-stream').attr('src', `http://${camIp}/stream`);
@@ -409,6 +422,7 @@
         $('#save-position button').on('release', function () {
            fetchSavedPositions();
         });
+
 
     </script>
 </body>

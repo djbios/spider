@@ -12,10 +12,12 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QVBoxLayout,
     QGroupBox,
-    QTextEdit,
     QPushButton,
     QLineEdit,
+    QComboBox,
+    QCheckBox,
 )
+from PyQt5.QtGui import QKeyEvent
 from ikpy.chain import Chain
 from ikpy.link import OriginLink, URDFLink
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
@@ -36,7 +38,7 @@ INITIAL_Z = -10
 INITIAL_HIP_ANGLE = 90
 INITIAL_KNEE_ANGLE = 90
 INITIAL_ANKLE_ANGLE = 90
-DEBOUNCE_DELAY = 300  # ms
+DEBOUNCE_DELAY = 500  # ms
 FIGURE_SIZE = (10, 10)
 AX_LIMIT = [-200, 200]
 
@@ -49,6 +51,7 @@ ANKLE_SHIFT_X = 55
 PYATKA_SHIFT_Y = 18
 PYATKA_SHIFT_Z = 80
 
+# Leg chains
 leg1 = Chain(
     name="leg1",
     links=[
@@ -118,7 +121,7 @@ leg2 = Chain(
 )
 
 leg3 = Chain(
-    name="leg2",
+    name="leg3",
     links=[
         OriginLink(),
         URDFLink(
@@ -152,7 +155,7 @@ leg3 = Chain(
 )
 
 leg4 = Chain(
-    name="leg2",
+    name="leg4",
     links=[
         OriginLink(),
         URDFLink(
@@ -395,6 +398,17 @@ class IKLegGUI(QWidget):
         top_menu_layout.addWidget(self.ip_input)
         top_menu_layout.addWidget(self.button)
 
+        # Add leg selector
+        self.leg_selector = QComboBox()
+        self.leg_selector.addItems(["Leg 1", "Leg 2", "Leg 3", "Leg 4"])
+        top_menu_layout.addWidget(QLabel("Select Leg:"))
+        top_menu_layout.addWidget(self.leg_selector)
+
+        self.live_movement_checkbox = QCheckBox("Live movement")
+        self.live_movement_checkbox.setChecked(False)
+        top_menu_layout.addWidget(QLabel("Live movement:"))
+        top_menu_layout.addWidget(self.live_movement_checkbox)
+
         # Bottom part of menu: 2x2 grid for legs
         legs_layout = QGridLayout()
         legs_layout.addWidget(self.legs[0].group_box, 0, 0)
@@ -411,6 +425,10 @@ class IKLegGUI(QWidget):
         self.update_legs()
         self.canvas.mpl_connect("scroll_event", self.zoom)
         self.button.clicked.connect(self.send_to_robot)
+
+        # Set focus policy and install event filter for key events
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.installEventFilter(self)
 
     def send_to_robot(self):
         import requests
@@ -476,6 +494,37 @@ class IKLegGUI(QWidget):
         self.ax.set_ylim(AX_LIMIT)
         self.ax.set_zlim(AX_LIMIT)
         self.canvas.draw()
+        if self.live_movement_checkbox.isChecked():
+            self.send_to_robot()
+
+    def eventFilter(self, source, event):
+        if event.type() == QKeyEvent.KeyPress:
+            self.handle_key_event(event)
+        return super().eventFilter(source, event)
+
+    def handle_key_event(self, event):
+        leg_index = self.leg_selector.currentIndex()
+        leg = self.legs[leg_index]
+        print(event.modifiers())
+        if event.modifiers() == Qt.ShiftModifier:
+            step = 5
+        else:
+            step = 1
+        print(step)
+        if event.key() == Qt.Key_W:
+            leg.y_slider.setValue(leg.y_slider.value() + step)
+        elif event.key() == Qt.Key_S:
+            leg.y_slider.setValue(leg.y_slider.value() - step)
+        elif event.key() == Qt.Key_A:
+            leg.x_slider.setValue(leg.x_slider.value() - step)
+        elif event.key() == Qt.Key_D:
+            leg.x_slider.setValue(leg.x_slider.value() + step)
+        elif event.key() == Qt.Key_F:
+            leg.z_slider.setValue(leg.z_slider.value() - step)
+        elif event.key() == Qt.Key_R:
+            leg.z_slider.setValue(leg.z_slider.value() + step)
+
+        self.update_legs()
 
 
 if __name__ == "__main__":
@@ -483,5 +532,3 @@ if __name__ == "__main__":
     ex = IKLegGUI()
     ex.show()
     sys.exit(app.exec_())
-
-# TODO: float sliders

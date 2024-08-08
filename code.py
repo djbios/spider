@@ -10,7 +10,7 @@ async def initial_actions():
     battery.log_battery()
     accelerometer.log_xyz()
     storage["last_boot"] = time.time()
-    await walker.to_zero()
+    #await walker.to_zero()
 
 
 # Main

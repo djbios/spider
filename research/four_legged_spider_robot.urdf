@@ -1,0 +1,190 @@
+<?xml version="1.0"?>
+<robot name="four_legged_spider_robot">
+    <!-- Base Link -->
+    <link name="base_link">
+        <visual>
+            <geometry>
+                <box size="0.1 0.1 0.02"/> <!-- Size approximation -->
+            </geometry>
+            <material name="base_color"/>
+        </visual>
+    </link>
+
+    <!-- Leg Definitions -->
+    <!-- Leg 1: Front Left -->
+    <joint name="hip_joint_fl" type="continuous">
+        <parent link="base_link"/>
+        <child link="upper_leg_link_fl"/>
+        <origin xyz="0.04 0.08 0" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+    </joint>
+    <link name="upper_leg_link_fl">
+        <visual>
+            <geometry>
+                <box size="0.02 0.02 0.02"/> <!-- Size approximation -->
+            </geometry>
+            <material name="leg_color"/>
+        </visual>
+    </link>
+    <joint name="knee_joint_fl" type="continuous">
+        <parent link="upper_leg_link_fl"/>
+        <child link="lower_leg_link_fl"/>
+        <origin xyz="0 0.05 0" rpy="0 0 0"/>
+        <axis xyz="1 0 0"/>
+    </joint>
+    <link name="lower_leg_link_fl">
+        <visual>
+            <geometry>
+                <box size="0.02 0.05 0.02"/> <!-- Size approximation -->
+            </geometry>
+            <material name="leg_color"/>
+        </visual>
+    </link>
+    <joint name="ankle_joint_fl" type="continuous">
+        <parent link="lower_leg_link_fl"/>
+        <child link="foot_link_fl"/>
+        <origin xyz="0 0 0.05" rpy="0 0 0"/>
+        <axis xyz="1 0 0"/>
+    </joint>
+    <link name="foot_link_fl">
+        <visual>
+            <geometry>
+                <box size="0.01 0.03 0.01"/> <!-- Size approximation -->
+            </geometry>
+            <material name="foot_color"/>
+        </visual>
+    </link>
+
+    <!-- Leg 2: Front Right -->
+    <joint name="hip_joint_fr" type="continuous">
+        <parent link="base_link"/>
+        <child link="upper_leg_link_fr"/>
+        <origin xyz="0.04 -0.02 0" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+    </joint>
+    <link name="upper_leg_link_fr">
+        <visual>
+            <geometry>
+                <box size="0.02 0.05 0.02"/> <!-- Size approximation -->
+            </geometry>
+            <material name="leg_color"/>
+        </visual>
+    </link>
+    <joint name="knee_joint_fr" type="continuous">
+        <parent link="upper_leg_link_fr"/>
+        <child link="lower_leg_link_fr"/>
+        <origin xyz="0 0 0.05" rpy="0 0 0"/>
+        <axis xyz="1 0 0"/>
+    </joint>
+    <link name="lower_leg_link_fr">
+        <visual>
+            <geometry>
+                <box size="0.02 0.05 0.02"/> <!-- Size approximation -->
+            </geometry>
+            <material name="leg_color"/>
+        </visual>
+    </link>
+    <joint name="ankle_joint_fr" type="continuous">
+        <parent link="lower_leg_link_fr"/>
+        <child link="foot_link_fr"/>
+        <origin xyz="0 0 0.05" rpy="0 0 0"/>
+        <axis xyz="1 0 0"/>
+    </joint>
+    <link name="foot_link_fr">
+        <visual>
+            <geometry>
+                <box size="0.01 0.03 0.01"/> <!-- Size approximation -->
+            </geometry>
+            <material name="foot_color"/>
+        </visual>
+    </link>
+
+    <!-- Leg 3: Back Left -->
+    <joint name="hip_joint_bl" type="continuous">
+        <parent link="base_link"/>
+        <child link="upper_leg_link_bl"/>
+        <origin xyz="-0.04 0.02 0" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+    </joint>
+    <link name="upper_leg_link_bl">
+        <visual>
+            <geometry>
+                <box size="0.02 0.05 0.02"/> <!-- Size approximation -->
+            </geometry>
+            <material name="leg_color"/>
+        </visual>
+    </link>
+    <joint name="knee_joint_bl" type="continuous">
+        <parent link="upper_leg_link_bl"/>
+        <child link="lower_leg_link_bl"/>
+        <origin xyz="0 0 0.05" rpy="0 0 0"/>
+        <axis xyz="1 0 0"/>
+    </joint>
+    <link name="lower_leg_link_bl">
+        <visual>
+            <geometry>
+                <box size="0.02 0.05 0.02"/> <!-- Size approximation -->
+            </geometry>
+            <material name="leg_color"/>
+        </visual>
+    </link>
+    <joint name="ankle_joint_bl" type="continuous">
+        <parent link="lower_leg_link_bl"/>
+        <child link="foot_link_bl"/>
+        <origin xyz="0 0 0.05" rpy="0 0 0"/>
+        <axis xyz="1 0 0"/>
+    </joint>
+    <link name="foot_link_bl">
+        <visual>
+            <geometry>
+                <box size="0.01 0.03 0.01"/> <!-- Size approximation -->
+            </geometry>
+            <material name="foot_color"/>
+        </visual>
+    </link>
+
+    <!-- Leg 4: Back Right -->
+    <joint name="hip_joint_br" type="continuous">
+        <parent link="base_link"/>
+        <child link="upper_leg_link_br"/>
+        <origin xyz="-0.04 -0.02 0" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+    </joint>
+    <link name="upper_leg_link_br">
+        <visual>
+            <geometry>
+                <box size="0.02 0.05 0.02"/> <!-- Size approximation -->
+            </geometry>
+            <material name="leg_color"/>
+        </visual>
+    </link>
+    <joint name="knee_joint_br" type="continuous">
+        <parent link="upper_leg_link_br"/>
+        <child link="lower_leg_link_br"/>
+        <origin xyz="0 0 0.05" rpy="0 0 0"/>
+        <axis xyz="1 0 0"/>
+    </joint>
+    <link name="lower_leg_link_br">
+        <visual>
+            <geometry>
+                <box size="0.02 0.05 0.02"/> <!-- Size approximation -->
+            </geometry>
+            <material name="leg_color"/>
+        </visual>
+    </link>
+    <joint name="ankle_joint_br" type="continuous">
+        <parent link="lower_leg_link_br"/>
+        <child link="foot_link_br"/>
+        <origin xyz="0 0 0.05" rpy="0 0 0"/>
+        <axis xyz="1 0 0"/>
+    </joint>
+    <link name="foot_link_br">
+        <visual>
+            <geometry>
+                <box size="0.01 0.03 0.01"/> <!-- Size approximation -->
+            </geometry>
+            <material name="foot_color"/>
+        </visual>
+    </link>
+
+</robot>

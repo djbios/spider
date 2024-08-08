@@ -27,7 +27,6 @@ class SmoothServo:
         self.min_angle = min_angle
         self.max_angle = max_angle
         self.current_angle = default_angle
-        self.target_angle = default_angle
         self.speed = 0  # Initial speed
         self.max_speed = 1
         self.acceleration = 1
@@ -51,7 +50,8 @@ class SmoothServo:
         """
         :param target_angle: Target angle for the servo in degrees
         """
-        self.target_angle = target_angle
+        self.current_movement = (self.current_angle, target_angle)
+        self.last_update_time = time.monotonic()
 
     def tick(self):
         """
@@ -64,16 +64,16 @@ class SmoothServo:
         delta_time = current_time - self.last_update_time
         self.last_update_time = current_time
 
-        err = self.target_angle - self.current_angle
+        err = movement_to - self.current_angle
         if abs(err) > 0.1:
-            this_dir = self.speed**2 / self.acceleration / 2.0 >= abs(
+            this_dir = self.speed ** 2 / self.acceleration / 2.0 >= abs(
                 err
             )  # Time to decelerate
             self.speed += (
-                self.acceleration
-                * delta_time
-                * (-1 if this_dir else 1)
-                * (1 if err > 0 else -1)
+                    self.acceleration
+                    * delta_time
+                    * (-1 if this_dir else 1)
+                    * (1 if err > 0 else -1)
             )
             self.speed = max(-self.max_speed, min(self.speed, self.max_speed))
 
@@ -114,17 +114,10 @@ class SmoothServo:
             self.current_angle = next_angle
             self.set_servo_angle(next_angle)
         else:
-            self.stop()
-
-    def start(self):
-        self.current_movement = (self.current_angle, self.target_angle)
-        self.last_update_time = time.monotonic()
-
-    def stop(self):
-        self.current_movement = None
+            self.current_movement = None
 
     def deactivate(self):
-        self.stop()
+        self.current_movement = None
         self._servo._pwm.duty_cycle = 0
 
     def hard_move(self, angle):
@@ -136,7 +129,7 @@ class SmoothServo:
 
     def apply_calibration(self, mid_angle):
         self.mid_angle = mid_angle
-        self.set_servo_angle(self.current_angle)
+        # self.set_servo_angle(self.current_angle)
 
 
 @RoutinesRegistry.register()
@@ -171,7 +164,6 @@ class Joint(SmoothServo):
 
         print(f"Move to {angle}")
         self.set_target(angle)
-        self.start()
         while self.current_movement:
             await asyncio.sleep(0.01)
 
@@ -206,32 +198,38 @@ class Leg:
         self.hip = hip
         self.knee = knee
         self.ankle = ankle
-        if id == 1:
-            self.x = x_default - x_offset
-            self.y = y_start + y_step
-            self.z = z_boot
-        if id == 2:
-            self.x = x_default - x_offset
-            self.y = y_start + y_step
-            self.z = z_boot
-        if id == 3:
-            self.x = x_default + x_offset
-            self.y = y_start
-            self.z = z_boot
-        if id == 4:
-            self.x = x_default + x_offset
-            self.y = y_start
-            self.z = z_boot
-        
         self.id = id
+        self.x = 0
+        self.y = 0
+        self.z = 0
+        # if id == 1:
+        #     self.set_site(x_default - x_offset, y_start + y_step, z_boot)
+        #     # self.x = x_default - x_offset
+        #     # self.y = y_start + y_step
+        #     # self.z = z_boot
+        # if id == 2:
+        #     self.set_site(x_default - x_offset, y_start + y_step, z_boot)
+        #     # self.x = x_default - x_offset
+        #     # self.y = y_start + y_step
+        #     # self.z = z_boot
+        # if id == 3:
+        #     self.set_site(x_default + x_offset, y_start, z_boot)
+        #     # self.x = x_default + x_offset
+        #     # self.y = y_start
+        #     # self.z = z_boot
+        # if id == 4:
+        #     self.set_site(x_default + x_offset, y_start, z_boot)
+        #     # self.x = x_default + x_offset
+        #     # self.y = y_start
+        #     # self.z = z_boot
 
         log("Leg initialized")
 
     async def move(
-        self,
-        hip: float,
-        knee: float,
-        ankle: float,
+            self,
+            hip: float,
+            knee: float,
+            ankle: float,
     ):
         tasks = []
         tasks.append(self.hip.move(hip))
@@ -241,41 +239,29 @@ class Leg:
         await asyncio.gather(*tasks)
 
     def set_site(self, x, y, z):
+        print(f"Set site: {x=}, {y=}, {z=}")
+        alpha, beta, gamma = self.get_servo_angles_for_linear_coords(x, y, z)
+        print(f"Angles: {alpha=}, {beta=}, {gamma=}")
+        self.hip.hard_move(gamma)
+        self.knee.hard_move(beta)
+        self.ankle.hard_move(alpha)
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def get_servo_angles_for_linear_coords(self, x, y, z):
         alpha, beta, gamma = self.cartesian_to_polar(x, y, z)
-        self.polar_to_servo(alpha, beta, gamma)
-
-    def linear_test(self):
-        """ Test the linear movement of the leg 
-        Move the leg in a linear path in the x, y, and z directions
-        """
-        self.set_site(self.x+10, self.y, self.z)
-        time.sleep(1)
-        self.set_site(self.x-20, self.y, self.z)
-        time.sleep(1)
-        self.set_site(self.x+10, self.y, self.z)
-
-        self.set_site(self.x, self.y+10, self.z)
-        time.sleep(1)
-        self.set_site(self.x, self.y-20, self.z)
-        time.sleep(1)
-        self.set_site(self.x, self.y+10, self.z)
-        
-        self.set_site(self.x, self.y, self.z+10)
-        time.sleep(1)
-        self.set_site(self.x, self.y, self.z-20)
-        time.sleep(1)
-        self.set_site(self.x, self.y, self.z+10)
-
+        return self.polar_to_servo(beta, alpha, gamma)
 
     def cartesian_to_polar(self, x, y, z):
-        w = (x >= 0 and 1 or -1) * math.sqrt(x**2 + y**2)
+        w = (x >= 0 and 1 or -1) * math.sqrt(x ** 2 + y ** 2)
         v = w - length_c
         alpha = math.atan2(z, v) + math.acos(
-            (length_a**2 - length_b**2 + v**2 + z**2)
-            / (2 * length_a * math.sqrt(v**2 + z**2))
+            (length_a ** 2 - length_b ** 2 + v ** 2 + z ** 2)
+            / (2 * length_a * math.sqrt(v ** 2 + z ** 2))
         )
         beta = math.acos(
-            (length_a**2 + length_b**2 - v**2 - z**2) / (2 * length_a * length_b)
+            (length_a ** 2 + length_b ** 2 - v ** 2 - z ** 2) / (2 * length_a * length_b)
         )
         gamma = math.atan2(y, x) if w >= 0 else math.atan2(-y, -x)
 
@@ -302,10 +288,29 @@ class Leg:
             alpha = 90 - alpha
             beta = beta
             gamma += 90
-        self.hip.hard_move(alpha)
-        self.knee.hard_move(beta)
-        self.ankle.hard_move(gamma)
-        
+        return alpha, beta, gamma
+
+    def linear_test(self):
+        """ Test the linear movement of the leg
+        Move the leg in a linear path in the x, y, and z directions
+        """
+        self.set_site(self.x + 10, self.y, self.z)
+        time.sleep(1)
+        self.set_site(self.x - 20, self.y, self.z)
+        time.sleep(1)
+        self.set_site(self.x + 10, self.y, self.z)
+
+        self.set_site(self.x, self.y + 10, self.z)
+        time.sleep(1)
+        self.set_site(self.x, self.y - 20, self.z)
+        time.sleep(1)
+        self.set_site(self.x, self.y + 10, self.z)
+
+        self.set_site(self.x, self.y, self.z + 10)
+        time.sleep(1)
+        self.set_site(self.x, self.y, self.z - 20)
+        time.sleep(1)
+        self.set_site(self.x, self.y, self.z + 10)
 
     # async def move_linear(self, dx: float, dy: float, dz: float):
     #     leg_config = self.leg_config
@@ -505,20 +510,20 @@ class Walker:
         log("Hard limits set")
 
     async def set_servos_angles(
-        self,
-        leg1_hip: int,
-        leg1_knee: int,
-        leg1_ankle: int,
-        leg2_hip: int,
-        leg2_knee: int,
-        leg2_ankle: int,
-        leg3_hip: int,
-        leg3_knee: int,
-        leg3_ankle: int,
-        leg4_hip: int,
-        leg4_knee: int,
-        leg4_ankle: int,
-        hard=False,  # TODO
+            self,
+            leg1_hip: int,
+            leg1_knee: int,
+            leg1_ankle: int,
+            leg2_hip: int,
+            leg2_knee: int,
+            leg2_ankle: int,
+            leg3_hip: int,
+            leg3_knee: int,
+            leg3_ankle: int,
+            leg4_hip: int,
+            leg4_knee: int,
+            leg4_ankle: int,
+            hard=False,  # TODO
     ):
         if hard:
             method = "hard_move"

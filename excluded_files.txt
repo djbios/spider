@@ -15,3 +15,5 @@ __pycache__/
 .idea/
 .python-version
 requirements.txt
+research/
+simulator/

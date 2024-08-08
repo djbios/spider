@@ -12,6 +12,9 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QVBoxLayout,
     QGroupBox,
+    QTextEdit,
+    QPushButton,
+    QLineEdit,
 )
 from ikpy.chain import Chain
 from ikpy.link import OriginLink, URDFLink
@@ -376,18 +379,67 @@ class IKLegGUI(QWidget):
         ]
 
         # Layout
+        # Main layout
         layout = QGridLayout()
-        layout.addWidget(self.canvas, 0, 0, 4, 1)
-        layout.addWidget(self.legs[0].group_box, 1, 1)
-        layout.addWidget(self.legs[1].group_box, 1, 2)
-        layout.addWidget(self.legs[2].group_box, 2, 1)
-        layout.addWidget(self.legs[3].group_box, 2, 2)
+        layout.addWidget(self.canvas, 0, 0, 1, 1)
 
+        menu_layout = QVBoxLayout()
+        layout.addLayout(menu_layout, 0, 1)
+
+        # Top part of menu: input box and button
+        top_menu_layout = QVBoxLayout()
+        self.ip_input = QLineEdit()
+        self.ip_input.setText("192.168.178.38:5000")
+        self.button = QPushButton("Send")
+        top_menu_layout.addWidget(QLabel("IP address:"))
+        top_menu_layout.addWidget(self.ip_input)
+        top_menu_layout.addWidget(self.button)
+
+        # Bottom part of menu: 2x2 grid for legs
+        legs_layout = QGridLayout()
+        legs_layout.addWidget(self.legs[0].group_box, 0, 0)
+        legs_layout.addWidget(self.legs[1].group_box, 0, 1)
+        legs_layout.addWidget(self.legs[3].group_box, 1, 0)
+        legs_layout.addWidget(self.legs[2].group_box, 1, 1)
+
+        # Add top and bottom parts to the menu layout
+        menu_layout.addLayout(top_menu_layout)
+        menu_layout.addLayout(legs_layout)
         self.setLayout(layout)
         self.setWindowTitle("Vintik simulator GUI")
 
         self.update_legs()
         self.canvas.mpl_connect("scroll_event", self.zoom)
+        self.button.clicked.connect(self.send_to_robot)
+
+    def send_to_robot(self):
+        import requests
+
+        api_ip = self.ip_input.text()
+        api_url = f"http://{api_ip}/api/command"
+        payload = {
+            "action": "set-servos",
+            "params": {
+                "leg1_hip": self.legs[0].hip_slider.value(),
+                "leg1_knee": self.legs[0].knee_slider.value(),
+                "leg1_ankle": self.legs[0].ankle_slider.value(),
+                "leg2_hip": self.legs[1].hip_slider.value(),
+                "leg2_knee": self.legs[1].knee_slider.value(),
+                "leg2_ankle": self.legs[1].ankle_slider.value(),
+                "leg3_hip": self.legs[2].hip_slider.value(),
+                "leg3_knee": self.legs[2].knee_slider.value(),
+                "leg3_ankle": self.legs[2].ankle_slider.value(),
+                "leg4_hip": self.legs[3].hip_slider.value(),
+                "leg4_knee": self.legs[3].knee_slider.value(),
+                "leg4_ankle": self.legs[3].ankle_slider.value(),
+                "hard": True,
+            },
+        }
+        print(f"Sending to robot at {api_ip} {payload}")
+        try:
+            requests.post(api_url, json=payload, timeout=1)
+        except requests.exceptions.RequestException as e:
+            print(e)
 
     def zoom(self, event):
         base_scale = 1.1

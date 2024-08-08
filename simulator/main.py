@@ -131,7 +131,7 @@ class LegUI:
         self.chain = chain
         self.ax = ax
         self.redraw_callback = redraw_callback
-        self.last_changer = ChangerType.COORDS
+        self.last_changer = ChangerType.ANGLES
         self.ignore_sliders = False
 
         self.group_box = QGroupBox(f"{name} Controls")
@@ -193,6 +193,8 @@ class LegUI:
         return layout
 
     def on_slider_value_changed(self, changer):
+        if self.ignore_sliders:
+            return
         self.last_changer = changer
         if self.timer.isActive():
             self.timer.stop()
@@ -209,19 +211,18 @@ class LegUI:
             ik = self.chain.inverse_kinematics(position)
             self.chain.plot(ik, self.ax, show=False)
             self.ax.scatter([position[0]], [position[1]], [position[2]], s=100)
-            self.ax.set_xlim(AX_LIMIT)
-            self.ax.set_ylim(AX_LIMIT)
-            self.ax.set_zlim(AX_LIMIT)
             self.hip_slider.setValue(int(math.degrees(ik[1])))
             self.knee_slider.setValue(int(math.degrees(ik[2])))
             self.ankle_slider.setValue(int(math.degrees(ik[3])))
         else:
-            x, y, z = self.angles_to_pos(
-                self.hip_slider.value(),
-                self.knee_slider.value(),
-                self.ankle_slider.value(),
-            )
-            self.chain.plot([0, x, y, z, 0], self.ax, show=False)
+            hip = self.hip_slider.value()
+            knee = self.knee_slider.value()
+            ankle = self.ankle_slider.value()
+
+            x, y, z = self.angles_to_pos(hip, knee, ankle)
+            self.ax.scatter([x], [y], [z], s=100)
+
+            self.chain.plot([0, math.radians(hip), math.radians(knee), math.radians(ankle), 0], self.ax, show=False)
             self.x_slider.setValue(int(x))
             self.y_slider.setValue(int(y))
             self.z_slider.setValue(int(z))
@@ -294,6 +295,9 @@ class IKLegGUI(QWidget):
         self.ax.cla()
         for leg in self.legs:
             leg.update_plot()
+        self.ax.set_xlim(AX_LIMIT)
+        self.ax.set_ylim(AX_LIMIT)
+        self.ax.set_zlim(AX_LIMIT)
         self.canvas.draw()
 
 

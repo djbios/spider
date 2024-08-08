@@ -148,6 +148,40 @@ leg3 = Chain(
     ],
 )
 
+leg4 = Chain(
+    name="leg2",
+    links=[
+        OriginLink(),
+        URDFLink(
+            name="hip",
+            bounds=(math.radians(0), math.radians(180)),
+            origin_translation=[BODY_WIDTH / 2, BODY_LENGTH / 2, 0],
+            origin_orientation=[0, 0, math.radians(-90)],
+            rotation=[0, 0, 1],
+        ),
+        URDFLink(
+            name="knee",
+            bounds=(math.radians(0), math.radians(180)),
+            origin_translation=[KNEE_SHIFT_X, KNEE_SHIFT_Y, 0],
+            origin_orientation=[0, math.radians(0), 0],
+            rotation=[0, 1, 0],
+        ),
+        URDFLink(
+            name="ankle",
+            bounds=(math.radians(0), math.radians(180)),
+            origin_translation=[0, 0, ANKLE_SHIFT_X],
+            origin_orientation=[0, math.radians(90), 0],
+            rotation=[0, -1, 0],
+        ),
+        URDFLink(
+            name="pyatka",
+            origin_translation=[PYATKA_SHIFT_Z, -PYATKA_SHIFT_Y, 0],
+            origin_orientation=[0, 0, 0],
+            rotation=[1, 0, 0],
+        ),
+    ],
+)
+
 
 class ChangerType(Enum):
     COORDS = 1
@@ -327,7 +361,18 @@ class IKLegGUI(QWidget):
                 [INITIAL_HIP_ANGLE, INITIAL_KNEE_ANGLE, INITIAL_ANKLE_ANGLE],
                 self.ax,
                 self.update_legs,
-            )
+            ),
+            LegUI(
+                "Leg 4",
+                leg4,
+                (X_MIN, X_MAX),
+                (Y_MIN, Y_MAX),
+                (Z_MIN, Z_MAX),
+                (ANGLE_MIN, ANGLE_MAX),
+                [INITIAL_HIP_ANGLE, INITIAL_KNEE_ANGLE, INITIAL_ANKLE_ANGLE],
+                self.ax,
+                self.update_legs,
+            ),
         ]
 
         # Layout
@@ -336,6 +381,7 @@ class IKLegGUI(QWidget):
         layout.addWidget(self.legs[0].group_box, 1, 1)
         layout.addWidget(self.legs[1].group_box, 1, 2)
         layout.addWidget(self.legs[2].group_box, 2, 1)
+        layout.addWidget(self.legs[3].group_box, 2, 2)
 
         self.setLayout(layout)
         self.setWindowTitle("Vintik simulator GUI")

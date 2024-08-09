@@ -1,0 +1,469 @@
+<?xml version="1.0" ?>
+<robot name="quadruped">
+
+  <!-- Base Link -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.1"/>
+      </geometry>
+      <material name="grey">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.5 0.5 0.1"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="10.0"/>
+      <inertia ixx="0.1" ixy="0.0" ixz="0.0" iyy="0.1" iyz="0.0" izz="0.1"/>
+    </inertial>
+  </link>
+
+  <!-- Leg 1 -->
+  <link name="leg1_knee_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.3" radius="0.05"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0.0 0.0 1.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.3" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="2.0"/>
+      <inertia ixx="0.02" ixy="0.0" ixz="0.0" iyy="0.02" iyz="0.0" izz="0.02"/>
+    </inertial>
+  </link>
+
+  <joint name="leg1_hip_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="leg1_knee_link"/>
+    <origin xyz="0.35 -0.35 0" rpy="0 0 -1.5708"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0" upper="3.1416" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="leg1_ankle_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.05"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0.0 1.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1.5"/>
+      <inertia ixx="0.015" ixy="0.0" ixz="0.0" iyy="0.015" iyz="0.0" izz="0.015"/>
+    </inertial>
+  </link>
+
+  <joint name="leg1_knee_joint" type="revolute">
+    <parent link="leg1_knee_link"/>
+    <child link="leg1_ankle_link"/>
+    <origin xyz="0.2743 -0.2 0" rpy="0 3.1416 0"/>
+    <axis xyz="0 -1 0"/>
+    <limit lower="0" upper="3.1416" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="leg1_pyatka_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.2" radius="0.05"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1.0 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.2" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+
+  <joint name="leg1_ankle_joint" type="revolute">
+    <parent link="leg1_ankle_link"/>
+    <child link="leg1_pyatka_link"/>
+    <origin xyz="0 0 0.55" rpy="0 -1.5708 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="3.1416" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="leg1_end_link">
+    <visual>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="1.0 1.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.005" ixy="0.0" ixz="0.0" iyy="0.005" iyz="0.0" izz="0.005"/>
+    </inertial>
+  </link>
+
+  <joint name="leg1_pyatka_joint" type="fixed">
+    <parent link="leg1_pyatka_link"/>
+    <child link="leg1_end_link"/>
+    <origin xyz="0.8 0.18 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Leg 2 -->
+  <link name="leg2_knee_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.3" radius="0.05"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0.0 0.0 1.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.3" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="2.0"/>
+      <inertia ixx="0.02" ixy="0.0" ixz="0.0" iyy="0.02" iyz="0.0" izz="0.02"/>
+    </inertial>
+  </link>
+
+  <joint name="leg2_hip_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="leg2_knee_link"/>
+    <origin xyz="-0.35 -0.35 0" rpy="0 0 -1.5708"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0" upper="3.1416" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="leg2_ankle_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.05"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0.0 1.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1.5"/>
+      <inertia ixx="0.015" ixy="0.0" ixz="0.0" iyy="0.015" iyz="0.0" izz="0.015"/>
+    </inertial>
+  </link>
+
+  <joint name="leg2_knee_joint" type="revolute">
+    <parent link="leg2_knee_link"/>
+    <child link="leg2_ankle_link"/>
+    <origin xyz="-0.2743 -0.2 0" rpy="0 0 0"/>
+    <axis xyz="0 -1 0"/>
+    <limit lower="0" upper="3.1416" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="leg2_pyatka_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.2" radius="0.05"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1.0 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.2" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+
+  <joint name="leg2_ankle_joint" type="revolute">
+    <parent link="leg2_ankle_link"/>
+    <child link="leg2_pyatka_link"/>
+    <origin xyz="0 0 0.55" rpy="0 -1.5708 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="3.1416" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="leg2_end_link">
+    <visual>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="1.0 1.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.005" ixy="0.0" ixz="0.0" iyy="0.005" iyz="0.0" izz="0.005"/>
+    </inertial>
+  </link>
+
+  <joint name="leg2_pyatka_joint" type="fixed">
+    <parent link="leg2_pyatka_link"/>
+    <child link="leg2_end_link"/>
+    <origin xyz="-0.8 0.18 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Leg 3 -->
+  <link name="leg3_knee_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.3" radius="0.05"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0.0 0.0 1.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.3" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="2.0"/>
+      <inertia ixx="0.02" ixy="0.0" ixz="0.0" iyy="0.02" iyz="0.0" izz="0.02"/>
+    </inertial>
+  </link>
+
+  <joint name="leg3_hip_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="leg3_knee_link"/>
+    <origin xyz="-0.35 0.35 0" rpy="0 0 -1.5708"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0" upper="3.1416" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="leg3_ankle_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.05"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0.0 1.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1.5"/>
+      <inertia ixx="0.015" ixy="0.0" ixz="0.0" iyy="0.015" iyz="0.0" izz="0.015"/>
+    </inertial>
+  </link>
+
+  <joint name="leg3_knee_joint" type="revolute">
+    <parent link="leg3_knee_link"/>
+    <child link="leg3_ankle_link"/>
+    <origin xyz="-0.2743 0.2 0" rpy="0 3.1416 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="3.1416" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="leg3_pyatka_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.2" radius="0.05"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1.0 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.2" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+
+  <joint name="leg3_ankle_joint" type="revolute">
+    <parent link="leg3_ankle_link"/>
+    <child link="leg3_pyatka_link"/>
+    <origin xyz="0 0 0.55" rpy="0 1.5708 0"/>
+    <axis xyz="0 -1 0"/>
+    <limit lower="0" upper="3.1416" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="leg3_end_link">
+    <visual>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="1.0 1.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.005" ixy="0.0" ixz="0.0" iyy="0.005" iyz="0.0" izz="0.005"/>
+    </inertial>
+  </link>
+
+  <joint name="leg3_pyatka_joint" type="fixed">
+    <parent link="leg3_pyatka_link"/>
+    <child link="leg3_end_link"/>
+    <origin xyz="-0.8 -0.18 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Leg 4 -->
+  <link name="leg4_knee_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.3" radius="0.05"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0.0 0.0 1.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.3" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="2.0"/>
+      <inertia ixx="0.02" ixy="0.0" ixz="0.0" iyy="0.02" iyz="0.0" izz="0.02"/>
+    </inertial>
+  </link>
+
+  <joint name="leg4_hip_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="leg4_knee_link"/>
+    <origin xyz="0.35 0.35 0" rpy="0 0 -1.5708"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0" upper="3.1416" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="leg4_ankle_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.25" radius="0.05"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0.0 1.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.25" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1.5"/>
+      <inertia ixx="0.015" ixy="0.0" ixz="0.0" iyy="0.015" iyz="0.0" izz="0.015"/>
+    </inertial>
+  </link>
+
+  <joint name="leg4_knee_joint" type="revolute">
+    <parent link="leg4_knee_link"/>
+    <child link="leg4_ankle_link"/>
+    <origin xyz="0.2743 0.2 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="3.1416" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="leg4_pyatka_link">
+    <visual>
+      <geometry>
+        <cylinder length="0.2" radius="0.05"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1.0 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.2" radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+
+  <joint name="leg4_ankle_joint" type="revolute">
+    <parent link="leg4_ankle_link"/>
+    <child link="leg4_pyatka_link"/>
+    <origin xyz="0 0 0.55" rpy="0 1.5708 0"/>
+    <axis xyz="0 -1 0"/>
+    <limit lower="0" upper="3.1416" effort="10" velocity="1"/>
+  </joint>
+
+  <link name="leg4_end_link">
+    <visual>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="1.0 1.0 0.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.005" ixy="0.0" ixz="0.0" iyy="0.005" iyz="0.0" izz="0.005"/>
+    </inertial>
+  </link>
+
+  <joint name="leg4_pyatka_joint" type="fixed">
+    <parent link="leg4_pyatka_link"/>
+    <child link="leg4_end_link"/>
+    <origin xyz="0.8 -0.18 0" rpy="0 0 0"/>
+  </joint>
+
+</robot>

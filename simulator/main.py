@@ -1,5 +1,6 @@
 import math
 import sys
+from collections import namedtuple
 from enum import Enum
 
 from PyQt5.QtCore import Qt, QTimer
@@ -24,12 +25,6 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 # Drawing constants
-X_MIN = -200
-X_MAX = 200
-Y_MIN = -200
-Y_MAX = 200
-Z_MIN = -100
-Z_MAX = 100
 ANGLE_MIN = 0
 ANGLE_MAX = 180
 INITIAL_X = 30
@@ -188,6 +183,8 @@ leg4 = Chain(
     ],
 )
 
+LegBoundaries = namedtuple("LegBoundries", ["max_x", "min_x", "max_y", "min_y", "max_z", "min_z"])
+
 
 class ChangerType(Enum):
     COORDS = 1
@@ -195,13 +192,24 @@ class ChangerType(Enum):
 
 
 class LegUI:
+    def find_physical_boundaries(self) -> LegBoundaries:
+        x = []
+        y = []
+        z = []
+        for i in range(0, 180, 10):
+            for j in range(0, 180, 10):
+                for k in range(0, 180, 10):
+                    angles = [0, math.radians(i), math.radians(j), math.radians(k), 0]
+                    fk = self.chain.forward_kinematics(angles)
+                    x.append(fk[0, 3])
+                    y.append(fk[1, 3])
+                    z.append(fk[2, 3])
+        return LegBoundaries(max(x), min(x), max(y), min(y), max(z), min(z))
+
     def __init__(
         self,
         name,
         chain,
-        x_range,
-        y_range,
-        z_range,
         angle_range,
         initial_angles,
         ax,
@@ -212,16 +220,23 @@ class LegUI:
         self.redraw_callback = redraw_callback
         self.last_changer = ChangerType.ANGLES
         self.ignore_sliders = False
-
+        self.boundaries = self.find_physical_boundaries()
+        print(f"Boundaries for {name}: {self.boundaries}")
         self.group_box = QGroupBox(f"{name} Controls")
         self.hip_slider, self.hip_label = self.create_slider_with_label(*angle_range, initial_angles[0], "Hip")
         self.knee_slider, self.knee_label = self.create_slider_with_label(*angle_range, initial_angles[1], "Knee")
         self.ankle_slider, self.ankle_label = self.create_slider_with_label(*angle_range, initial_angles[2], "Ankle")
 
         x, y, z = self.angles_to_pos(initial_angles[0], initial_angles[1], initial_angles[2])
-        self.x_slider, self.x_label = self.create_slider_with_label(*x_range, x, "X")
-        self.y_slider, self.y_label = self.create_slider_with_label(*y_range, y, "Y")
-        self.z_slider, self.z_label = self.create_slider_with_label(*z_range, z, "Z")
+        self.x_slider, self.x_label = self.create_slider_with_label(
+            self.boundaries.min_x, self.boundaries.max_x, x, "X"
+        )
+        self.y_slider, self.y_label = self.create_slider_with_label(
+            self.boundaries.min_y, self.boundaries.max_y, y, "Y"
+        )
+        self.z_slider, self.z_label = self.create_slider_with_label(
+            self.boundaries.min_z, self.boundaries.max_z, z, "Z"
+        )
 
         layout = QVBoxLayout()
         layout.addLayout(self.create_slider_layout(self.x_slider, self.x_label))
@@ -287,8 +302,15 @@ class LegUI:
                 self.y_slider.value(),
                 self.z_slider.value(),
             ]
-            ik = self.chain.inverse_kinematics(position)
+            ik = self.chain.inverse_kinematics(position, optimizer="scalar")
+            reached_pos = self.angles_to_pos(math.degrees(ik[1]), math.degrees(ik[2]), math.degrees(ik[3]))
+            error = math.sqrt((reached_pos[0] - position[0]) ** 2 + (reached_pos[1] - position[1]) ** 2)
             self.chain.plot(ik, self.ax, show=False)
+            if error > 1:
+                self.ax.scatter([position[0]], [position[1]], [position[2]], s=200, c="red")
+                print(f"Error: {error}")
+                self.ignore_sliders = False
+                return
             self.ax.scatter([position[0]], [position[1]], [position[2]], s=100)
             self.hip_slider.setValue(int(math.degrees(ik[1])))
             self.knee_slider.setValue(int(math.degrees(ik[2])))
@@ -338,9 +360,6 @@ class IKLegGUI(QWidget):
             LegUI(
                 "Leg 1",
                 leg1,
-                (X_MIN, X_MAX),
-                (Y_MIN, Y_MAX),
-                (Z_MIN, Z_MAX),
                 (ANGLE_MIN, ANGLE_MAX),
                 [INITIAL_HIP_ANGLE, INITIAL_KNEE_ANGLE, INITIAL_ANKLE_ANGLE],
                 self.ax,
@@ -349,9 +368,6 @@ class IKLegGUI(QWidget):
             LegUI(
                 "Leg 2",
                 leg2,
-                (X_MIN, X_MAX),
-                (Y_MIN, Y_MAX),
-                (Z_MIN, Z_MAX),
                 (ANGLE_MIN, ANGLE_MAX),
                 [INITIAL_HIP_ANGLE, INITIAL_KNEE_ANGLE, INITIAL_ANKLE_ANGLE],
                 self.ax,
@@ -360,9 +376,6 @@ class IKLegGUI(QWidget):
             LegUI(
                 "Leg 3",
                 leg3,
-                (X_MIN, X_MAX),
-                (Y_MIN, Y_MAX),
-                (Z_MIN, Z_MAX),
                 (ANGLE_MIN, ANGLE_MAX),
                 [INITIAL_HIP_ANGLE, INITIAL_KNEE_ANGLE, INITIAL_ANKLE_ANGLE],
                 self.ax,
@@ -371,15 +384,16 @@ class IKLegGUI(QWidget):
             LegUI(
                 "Leg 4",
                 leg4,
-                (X_MIN, X_MAX),
-                (Y_MIN, Y_MAX),
-                (Z_MIN, Z_MAX),
                 (ANGLE_MIN, ANGLE_MAX),
                 [INITIAL_HIP_ANGLE, INITIAL_KNEE_ANGLE, INITIAL_ANKLE_ANGLE],
                 self.ax,
                 self.update_legs,
             ),
         ]
+
+        self.requests_timer = QTimer()
+        self.requests_timer.setInterval(500)
+        self.requests_timer.timeout.connect(self.send_to_robot)
 
         # Layout
         # Main layout
@@ -495,7 +509,9 @@ class IKLegGUI(QWidget):
         self.ax.set_zlim(AX_LIMIT)
         self.canvas.draw()
         if self.live_movement_checkbox.isChecked():
-            self.send_to_robot()
+            if self.requests_timer.isActive():
+                self.requests_timer.stop()
+            self.requests_timer.start()
 
     def eventFilter(self, source, event):
         if event.type() == QKeyEvent.KeyPress:

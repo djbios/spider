@@ -41,6 +41,9 @@ def stats(request: Request):
 @server.route("/api/command", POST)
 def command(request: Request):
     request_data = request.json()
+    if not request_data:
+        return JSONResponse(request, {"error": "No data received"})
+
     action = request_data.get("action")
     if action in commands:
         kwargs = request_data.get("params", {})

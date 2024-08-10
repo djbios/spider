@@ -48,7 +48,7 @@ def solver(URDFLink, OriginLink, Chain, initial_angles=(90, 90, 90)):
 
     #print(f"FK: {fk_x=}, {fk_y=}, {fk_z=}")
 
-    ik = leg1.inverse_kinematics([fk_x, fk_y, fk_z])
+    ik = leg1.inverse_kinematics([fk_x, fk_y, fk_z], optimizer='scalar')
     ik_degrees = [math.degrees(angle) for angle in ik[1:-1]]
     #print(f"IK: {ik_degrees=}")
 

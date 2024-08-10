@@ -118,23 +118,19 @@ class Chain:
 
         if active_links_mask is not None:
             if len(active_links_mask) != len(self.links):
-                raise ValueError(
-                    "Your active links mask length of {} is different from the number of your links, which is {}".format(
-                        len(active_links_mask), len(self.links)
-                    )
-                )
+                raise ValueError("Your active links mask length of {} is different from the number of your links, which is {}".format(len(active_links_mask), len(self.links)))
             self.active_links_mask = np.array(active_links_mask)
         else:
             self.active_links_mask = np.array([True] * len(links))
 
         if self.active_links_mask[-1] is True:
-            # print("active_link_mask[-1] is True, but it should be set to False. Overriding and setting to False")
+            #warnings.warn("active_link_mask[-1] is True, but it should be set to False. Overriding and setting to False")
             self.active_links_mask[-1] = False
 
         for link_index, (link_active, link) in enumerate(zip(self.active_links_mask, self.links)):
             if link.joint_type == "fixed" and link_active:
                 ...
-                # print("Link {} (index: {}) is of type 'fixed' but set as active in the active_links_mask. In practice, this fixed link doesn't provide any transformation so is as it were inactive".format(link.name, link_index))
+                #warnings.warn("Link {} (index: {}) is of type 'fixed' but set as active in the active_links_mask. In practice, this fixed link doesn't provide any transformation so is as it were inactive".format(link.name, link_index))
 
     def forward_kinematics(self, joints, full_kinematics=False):
         frame_matrix = np.eye(4)
@@ -143,9 +139,7 @@ class Chain:
             frame_matrixes = []
 
         if len(self.links) != len(joints):
-            raise ValueError(
-                "Your joints vector length is {} but you have {} links".format(len(joints), len(self.links))
-            )
+            raise ValueError("Your joints vector length is {} but you have {} links".format(len(joints), len(self.links)))
 
         for index, (link, joint_parameters) in enumerate(zip(self.links, joints)):
             frame_matrix = np.dot(frame_matrix, np.asarray(link.get_link_frame_matrix(joint_parameters)))
@@ -157,9 +151,7 @@ class Chain:
         else:
             return frame_matrix
 
-    def inverse_kinematics(
-        self, target_position=None, target_orientation=None, orientation_mode=None, initial_position=None, **kwargs
-    ):
+    def inverse_kinematics(self, target_position=None, target_orientation=None, orientation_mode=None, initial_position=None, optimizer="least_squares", **kwargs):
         frame_target = np.eye(4)
 
         if orientation_mode is not None:
@@ -183,14 +175,7 @@ class Chain:
         if initial_position is None:
             initial_position = [0] * len(self.links)  # Set default initial positions
 
-        return inverse_kinematic_optimization(
-            self,
-            target=frame_target,
-            starting_nodes_angles=initial_position,
-            orientation_mode=orientation_mode,
-            no_position=no_position,
-            **kwargs
-        )
+        return inverse_kinematic_optimization(self, target=frame_target, starting_nodes_angles=initial_position, orientation_mode=orientation_mode, no_position=no_position, optimizer=optimizer, **kwargs)
 
     def active_to_full(self, active_joints, initial_position):
         full_joints = np.array(initial_position, copy=True, dtype=np.float64)
@@ -200,8 +185,7 @@ class Chain:
     def active_from_full(self, joints):
         return np.compress(self.active_links_mask, joints, axis=0)
 
-
-def inverse_kinematic_optimization(chain, target, starting_nodes_angles, **kwargs):
+def inverse_kinematic_optimization(chain, target, starting_nodes_angles, orientation_mode=None, no_position=False, optimizer="least_squares", **kwargs):
     target = target[:3, -1]
 
     def optimize_basis(x):
@@ -210,63 +194,70 @@ def inverse_kinematic_optimization(chain, target, starting_nodes_angles, **kwarg
         return fk
 
     def optimize_target_function(fk):
-        target_error = fk[:3, -1] - target
+        target_error = (fk[:3, -1] - target)
         return target_error
 
-    if kwargs.get("orientation_mode") is None:
-
+    if orientation_mode is None:
         def optimize_function(x):
             fk = optimize_basis(x)
             target_error = optimize_target_function(fk)
             return target_error
-
     else:
         raise NotImplementedError("Only position-based IK is supported in this minimized version.")
 
-    if starting_nodes_angles is None:
-        raise ValueError("starting_nodes_angles must be specified")
-
     real_bounds = chain.active_from_full([link.bounds for link in chain.links])
 
-    res = scipy.optimize.least_squares(
-        optimize_function, chain.active_from_full(starting_nodes_angles), bounds=np.moveaxis(real_bounds, -1, 0)
-    )
+    if optimizer == "least_squares":
+        res = scipy.optimize.least_squares(optimize_function, chain.active_from_full(starting_nodes_angles), bounds=np.moveaxis(real_bounds, -1, 0))
+    elif optimizer == "scalar":
+        def optimize_scalar(x):
+            return np.linalg.norm(optimize_function(x))
+        res = scipy.optimize.minimize(optimize_scalar, chain.active_from_full(starting_nodes_angles), bounds=real_bounds)
+    else:
+        raise ValueError(f"Unknown optimizer: {optimizer}")
 
-    return chain.active_to_full(res.x, starting_nodes_angles)
-
+    if res.success or res.status > 0:
+        return chain.active_to_full(res.x, starting_nodes_angles)
+    else:
+       # warnings.warn(f"Inverse kinematic optimization failed with status: {res.status}")
+        return chain.active_to_full(res.x, starting_nodes_angles)
 
 def axis_rotation_matrix(axis, theta):
     [x, y, z] = axis
     c = np.cos(theta)
     s = np.sin(theta)
-    return np.array(
-        [
-            [x * x * (1 - c) + c, x * y * (1 - c) - z * s, x * z * (1 - c) + y * s],
-            [y * x * (1 - c) + z * s, y * y * (1 - c) + c, y * z * (1 - c) - x * s],
-            [x * z * (1 - c) - y * s, y * z * (1 - c) + x * s, z * z * (1 - c) + c],
-        ]
-    )
-
+    return np.array([
+        [x * x * (1 - c) + c, x * y * (1 - c) - z * s, x * z * (1 - c) + y * s],
+        [y * x * (1 - c) + z * s, y * y * (1 - c) + c, y * z * (1 - c) - x * s],
+        [x * z * (1 - c) - y * s, y * z * (1 - c) + x * s, z * z * (1 - c) + c]
+    ])
 
 def rpy_matrix(roll, pitch, yaw):
     return np.dot(rz_matrix(yaw), np.dot(ry_matrix(pitch), rx_matrix(roll)))
 
-
 def rx_matrix(theta):
-    return np.array([[1, 0, 0], [0, np.cos(theta), -np.sin(theta)], [0, np.sin(theta), np.cos(theta)]])
-
+    return np.array([
+        [1, 0, 0],
+        [0, np.cos(theta), -np.sin(theta)],
+        [0, np.sin(theta), np.cos(theta)]
+    ])
 
 def ry_matrix(theta):
-    return np.array([[np.cos(theta), 0, np.sin(theta)], [0, 1, 0], [-np.sin(theta), 0, np.cos(theta)]])
-
+    return np.array([
+        [np.cos(theta), 0, np.sin(theta)],
+        [0, 1, 0],
+        [-np.sin(theta), 0, np.cos(theta)]
+    ])
 
 def rz_matrix(theta):
-    return np.array([[np.cos(theta), -np.sin(theta), 0], [np.sin(theta), np.cos(theta), 0], [0, 0, 1]])
-
+    return np.array([
+        [np.cos(theta), -np.sin(theta), 0],
+        [np.sin(theta), np.cos(theta), 0],
+        [0, 0, 1]
+    ])
 
 def homogeneous_translation_matrix(trans_x, trans_y, trans_z):
     return np.array([[1, 0, 0, trans_x], [0, 1, 0, trans_y], [0, 0, 1, trans_z], [0, 0, 0, 1]])
-
 
 def cartesian_to_homogeneous(cartesian_matrix):
     dimension_x, dimension_y = cartesian_matrix.shape

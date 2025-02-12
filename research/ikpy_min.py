@@ -212,7 +212,9 @@ def inverse_kinematic_optimization(chain, target, starting_nodes_angles, orienta
     elif optimizer == "scalar":
         def optimize_scalar(x):
             return np.linalg.norm(optimize_function(x))
-        res = scipy.optimize.minimize(optimize_scalar, chain.active_from_full(starting_nodes_angles), bounds=real_bounds)
+        #res = scipy.optimize.minimize(optimize_scalar, chain.active_from_full(starting_nodes_angles), bounds=real_bounds)
+        from optimize_min import minimize
+        res = minimize(optimize_scalar, chain.active_from_full(starting_nodes_angles), bounds=real_bounds)
     else:
         raise ValueError(f"Unknown optimizer: {optimizer}")
 

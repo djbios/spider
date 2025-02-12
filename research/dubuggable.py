@@ -68,7 +68,7 @@ from ikpy_min import Chain, OriginLink, URDFLink
 
 
 
-ang= (95, 95, 95)
+ang= (60, 95, 95)
 orig_res = solver(OriginalURDFLink, OriginalOriginLink, OriginalChain, ang)
 print(f"Original solver: {orig_res:.5f}")
 
